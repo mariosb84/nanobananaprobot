@@ -31,3 +31,27 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Archives and binary files ###
+profi-app.tar
+*.tar
+*.tar.gz
+*.jar
+*.war
+*.ear
+*.zip
+
+### Parser debug files ###
+*_page.html
+*_screenshot.png
+*_url.txt
+login_*.html
+login_*.png
+after_search_*
+before_search_*
+alternative_search_*
+debug/
+*.log
+
+###  .env ###
+.env

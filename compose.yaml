@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=nanobananaprobot_auth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=SB14041984sb
+    ports:
+      - "5432:5432"  # Проброс порта на хост для IDEA
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - profi-network
+
+  profi-app:
+    #build: .   # ← ЭТО УБРАТЬ!
+    image: nanobananaprobot-app:latest  # ← ЭТО ДОБАВИТЬ!
+    ports:
+      - "9900:9900"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/nanobananaprobot_auth
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=SB14041984sb
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - INSIDE_DOCKER=true
+      - LOGGING_LEVEL_ORG_EXAMPLE_NANOBANANAPROBOT=DEBUG
+      - LOGGING_LEVEL_ROOT=INFO
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - nanobananaprobot-network
+
+volumes:
+  postgres_data:
+
+networks:
+  profi-network:
+    driver: bridge
