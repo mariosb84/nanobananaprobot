@@ -5,6 +5,9 @@ import org.example.nanobananaprobot.config.HiggsfieldConfig;
 import org.example.nanobananaprobot.domain.dto.ImageGenerationRequest;
 import org.example.nanobananaprobot.domain.dto.ImageGenerationResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.time.Duration;
 
 @Service
 @Slf4j
@@ -50,7 +53,7 @@ public class HiggsfieldAIService {
         }
     }
 
-    // Метод для проверки доступности API
+    /* Метод для проверки доступности API*/
     public boolean isApiAvailable() {
         try {
             webClient.get()

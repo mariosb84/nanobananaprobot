@@ -37,11 +37,7 @@ public class MenuFactoryImpl implements MenuFactory {
     public SendMessage createWelcomeMenu(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("👋 Добро пожаловать!\n\n"
-                + TextConstants.START_TEXT.getText()
-                + "\n\nВыберите действие:"
-        );
-
+        message.setText(TextConstants.WELCOME_TEXT.getText());
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -51,19 +47,15 @@ public class MenuFactoryImpl implements MenuFactory {
         List<KeyboardRow> rows = new ArrayList<>();
 
         KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("📝 Подключить_Profi_ru"));
+        row1.add(new KeyboardButton("📝 Зарегистрироваться"));
         row1.add(new KeyboardButton("🔑 Войти"));
 
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("📋 Информация"));    /* ← ДОБАВЛЯЕМ*/
-        row2.add(new KeyboardButton("📞 Контакты"));      /* ← ДОБАВЛЯЕМ*/
-
-        KeyboardRow row3 = new KeyboardRow();
-        row2.add(new KeyboardButton("🏠 Старт"));
+        row2.add(new KeyboardButton("📋 Информация"));
+        row2.add(new KeyboardButton("📞 Контакты"));
 
         rows.add(row1);
         rows.add(row2);
-        rows.add(row3);
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
 
@@ -72,69 +64,52 @@ public class MenuFactoryImpl implements MenuFactory {
 
     @Override
     public SendMessage createMainMenu(Long chatId) {
-        return createMainMenu(chatId, false); /* вызов перегруженного метода с флагом false*/
+        return createMainMenu(chatId, false);
     }
 
-    /* НОВЫЙ ПЕРЕГРУЖЕННЫЙ МЕТОД*/
-    public SendMessage createMainMenu(Long chatId, boolean afterSearch) {
+    @Override
+    public SendMessage createMainMenu(Long chatId, boolean afterGeneration) {
         User user = userService.findByTelegramChatId(chatId);
-        String status = "";
+        String status = user != null ? getSubscriptionStatus(user.getUsername()) : "❌ Подписка: не активна";
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
 
-        /* Показываем надпись о выходе в главное меню только если НЕ после поиска*/
-        if (!afterSearch) {
-            status = user != null ? getSubscriptionStatus(user.getUsername()) : "❌ Подписка: не активна";
+        if (!afterGeneration) {
             message.setText("🏠 *Главное меню*\n\n" + status + "\n\nВыберите действие:");
-            message.setParseMode("Markdown");
         } else {
-            /* После поиска - показываем сообщение о поиске*/
-            /*message.setText("*Время ожидания зависит от загрузки сервера...*");*/
-            message.setText("*⌛*");
-            message.setParseMode("Markdown");
+            message.setText("✅ *Генерация завершена!*\n\n" + status + "\n\nВыберите следующее действие:");
         }
+        message.setParseMode("Markdown");
 
-        /* Остальная логика создания клавиатуры БЕЗ ИЗМЕНЕНИЙ*/
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         keyboard.setResizeKeyboard(true);
 
         List<KeyboardRow> rows = new ArrayList<>();
 
+        // Основные функции генерации
         KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("🔍 Ручной поиск"));
-        row1.add(new KeyboardButton("⚙️ Ключевые слова"));
+        row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
+        row1.add(new KeyboardButton("🎥 Сгенерировать видео"));
 
+        // Управление подпиской
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("🚀 Поиск по ключам"));
         row2.add(new KeyboardButton("💳 Оплатить подписку"));
+        row2.add(new KeyboardButton("📊 Статистика"));
 
+        // Информация и настройки
         KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("⏰ Автопоиск"));
         row3.add(new KeyboardButton("📋 Информация"));
+        row3.add(new KeyboardButton("📞 Контакты"));
 
+        // Выход
         KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("📞 Контакты"));
-        row4.add(new KeyboardButton("🏠 Главное меню"));
-
-        KeyboardRow row5 = new KeyboardRow();
-        row5.add(new KeyboardButton("❌ Выйти"));
-
-        /* В списке rows после row5 добавляем:*/
-        KeyboardRow row6 = new KeyboardRow();
-        row6.add(new KeyboardButton("⚙️ Сменить данные Profi_ru"));
-
-        KeyboardRow row7 = new KeyboardRow();
-        row7.add(new KeyboardButton("📧 Сменить email"));
+        row4.add(new KeyboardButton("❌ Выйти"));
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
-        rows.add(row5);
-        /* И добавляем в rows:*/
-        rows.add(row6);
-        rows.add(row7);
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
 
@@ -146,11 +121,11 @@ public class MenuFactoryImpl implements MenuFactory {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         message.setText("💳 *Выбор подписки*\n\n" +
-                "✅ Неограниченный поиск\n" +
-                "✅ Автопоиск по ключам\n" +
-                "✅ Быстрые отклики\n\n" +
-                "*После оплаты подписка активируется автоматически" +
-                " втечение 59 секунд!*");
+                "✅ Генерация изображений\n" +
+                "✅ Создание видео\n" +
+                "✅ Все модели AI\n" +
+                "✅ Приоритетная очередь\n\n" +
+                "*После оплаты подписка активируется автоматически!*");
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -159,86 +134,30 @@ public class MenuFactoryImpl implements MenuFactory {
         List<KeyboardRow> rows = new ArrayList<>();
 
         KeyboardRow row1 = new KeyboardRow();
-
-       /* row1.add(new KeyboardButton("1 месяц - 299₽"));*/ /* меняем на @Value*/
         row1.add(new KeyboardButton("1 месяц - " + this.monthlyPrice + this.currencySecond));
 
-        /*KeyboardRow row2 = new KeyboardRow();*/
-
-        /*row2.add(new KeyboardButton("12 месяцев - 2490₽"));*/ /* меняем на @Value*/
-       /* row2.add(new KeyboardButton("12 месяцев - " + this.yearlyPrice + this.currencySecond));*/ /*ПОКА УБИРАЕМ ПОДПИСКУ НА 1 ГОД*/
-
-        /*KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("✅ Проверить оплату"));*/  /* пока  убираем ручную проверку оплаты*/
-
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("🔙 Назад"));
-
-        rows.add(row1);
-        rows.add(row2);
-       /* rows.add(row3);*/
-        /*rows.add(row4);*/
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
-
-        return message;
-    }
-
-    @Override
-    public SendMessage createKeywordsMenu(Long chatId, List<String> keywords) {
-        StringBuilder text = new StringBuilder("⚙️ *Ключевые слова:*\n\n");
-        for (int i = 0; i < 5; i++) {
-            String keyword = keywords.get(i);
-            text.append(i + 1).append(". ").append(keyword.isEmpty() ? "не задан" : keyword).append("\n");
-        }
-
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(text.toString());
-        message.setParseMode("Markdown");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-
-        List<KeyboardRow> rows = new ArrayList<>();
-
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("✏️ Ключ 1"));
-        row1.add(new KeyboardButton("✏️ Ключ 2"));
-        row1.add(new KeyboardButton("✏️ Ключ 3"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("✏️ Ключ 4"));
-        row2.add(new KeyboardButton("✏️ Ключ 5"));
+        row2.add(new KeyboardButton("12 месяцев - " + this.yearlyPrice + this.currencySecond));
 
         KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("🚀 Поиск по ключам"));
-        row3.add(new KeyboardButton("🧹 Очистить все"));
-
-        KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("🔙 Назад"));
+        row3.add(new KeyboardButton("🔙 Назад"));
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
-        rows.add(row4);
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
 
         return message;
     }
 
-    private String getSubscriptionStatus(String username) {
-        return subscriptionService.getSubscriptionStatus(username); /* ← ВОТ ТАК*/
-    }
+    // УДАЛЯЕМ createKeywordsMenu - больше не нужен
 
     @Override
     public SendMessage createInfoMenu(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("📋 *Информация*\n\n" +
-                "Здесь будет основная информация о боте...\n\n" +
-                TextConstants.INFO_TEXT.getText());
+        message.setText("📋 *Информация*\n\n" + TextConstants.INFO_TEXT.getText());
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -259,9 +178,7 @@ public class MenuFactoryImpl implements MenuFactory {
     public SendMessage createContactsMenu(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("📞 *Контакты*\n\n" +
-                TextConstants.CONTACTS_TEXT.getText());
-
+        message.setText("📞 *Контакты*\n\n" + TextConstants.CONTACTS_TEXT.getText());
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -276,6 +193,44 @@ public class MenuFactoryImpl implements MenuFactory {
         message.setReplyMarkup(keyboard);
 
         return message;
+    }
+
+    // ДОБАВЛЯЕМ НОВЫЙ МЕТОД ДЛЯ СТАТИСТИКИ
+    public SendMessage createStatsMenu(Long chatId) {
+        User user = userService.findByTelegramChatId(chatId);
+        String stats = "📊 *Ваша статистика*\n\n";
+
+        if (user != null) {
+            stats += "👤 Логин: " + user.getUsername() + "\n";
+            stats += getSubscriptionStatus(user.getUsername()) + "\n";
+            stats += "*Генерации в этом месяце:*\n";
+            stats += "🎨 Изображений: 0\n";
+            stats += "🎥 Видео: 0\n";
+        } else {
+            stats += "❌ Данные не найдены";
+        }
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(stats);
+        message.setParseMode("Markdown");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("🔙 Назад"));
+
+        rows.add(row1);
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }
+
+    private String getSubscriptionStatus(String username) {
+        return subscriptionService.getSubscriptionStatus(username);
     }
 
 }

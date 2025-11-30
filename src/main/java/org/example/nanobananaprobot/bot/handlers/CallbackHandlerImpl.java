@@ -2,7 +2,6 @@ package org.example.nanobananaprobot.bot.handlers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.nanobananaprobot.bot.service.SearchService;
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
