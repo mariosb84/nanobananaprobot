@@ -41,11 +41,6 @@ webdrivermanager:
 
 # YooKassa Payment System
 yookassa:
-  # TEST-MODE:
-  # shop-id: ${YOOKASSA_SHOP_ID:1181320}
-  # secret-key: ${YOOKASSA_SECRET_KEY:test_7AfQYlI0WOQVImchsPcaNkIfQdreb47ttSLDTnSqchA}
-  # test-mode: true
-  # REAL-MODE:
   shop-id: ${YOOKASSA_SHOP_ID:1180332}
   secret-key: ${YOOKASSA_SECRET_KEY:live_TwRr2APY3ngv0M-aBnhAewcpSk8oPyltkLGRg_Pgh-g}
   test-mode: false
@@ -56,15 +51,27 @@ app:
     return-url: "https://t.me/NanoBananaProBot_bot"
   webhook:
     url: "http://localhost:9900/api/payments/webhook/yookassa"
+  packages:
+    image:
+      "3": "39"
+      "10": "99"
+      "50": "449"
+      "100": "799"
+      "300": "2099"
+    video:
+      "1": "50"
+      "5": "225"
+      "10": "399"
+  trial:
+    free-generations: "3"
+    period-days: "7"  # Для AuthService (если используется)
   subscription:
     monthly:
-      price: "299"
+      price: "299.00"
     yearly:
-      price: "2490"
-  trial:
-    period-days: "7"
+      price: "2490.00"
 
-# URLs
+# URLs (для PaymentHandlerImpl)
 paymentUrl: "https://yoomoney.ru/checkout/payments/v2/contract?orderId="
 orderUrl: "https://profi.ru/backoffice/n.php?o="
 orderUrlSecond: "https://profi.ru/backoffice/n.php?o="
@@ -72,16 +79,16 @@ webDriverManagerGetDriver: "https://profi.ru/backoffice/a.php"
 webDriverManagerGetDriverSecond: "https://profi.ru/backoffice/n.php"
 searchUrl: "https://profi.ru/backoffice/n.php?q="
 
-# Prices and Currency
+# Prices and Currency (для MenuFactoryImpl и PaymentService)
 subscriptionPlanYearly: "2490.00"
 subscriptionPlanMonthly: "299.00"
 amountMonthly: "299.00"
 amountYearly: "2490.00"
-amountSetCurrency: "RUB"
+amountSetCurrency: "RUB"  # Для PaymentService
 currency: " ₽"
-currencySecond: "₽"
+currencySecond: "₽"  # Для MenuFactoryImpl
 
-# API URLs
+# API URLs (для YooKassaClient)
 API_URL: "https://api.yookassa.ru/v3/"
 TEST_API_URL: "https://api.yookassa.ru/v3/"
 
@@ -91,10 +98,10 @@ rest:
     timeout: 5000
   read:
     timeout: 5000
+
 # Higgsfield AI API
 higgsfield:
   api:
-    key: ${HIGGSFIELD_API_KEY:test_key}  # Заменишь позже
+    key: ${HIGGSFIELD_API_KEY:test_key}
     url: "https://api.higgsfield.ai/v1"
-    timeout: 30000  # 30 секунд для генерации
-
+    timeout: 30000

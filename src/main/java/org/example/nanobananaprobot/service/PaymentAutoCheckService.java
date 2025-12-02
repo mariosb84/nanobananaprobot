@@ -3,8 +3,8 @@ package org.example.nanobananaprobot.service;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.nanobananaprobot.bot.service.PaymentInfo;
 import org.example.nanobananaprobot.domain.model.User;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -13,115 +13,114 @@ import java.util.concurrent.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentAutoCheckService implements PaymentAutoCheckManager {
+public class PaymentAutoCheckService {
 
-    @Value("${subscriptionPlanYearly}")
-    private String subscriptionPlanYearly;
-
-    private final YooKassaClient yooKassaClient; // ← ВМЕСТО PaymentService
-    private final SubscriptionService subscriptionService;
+    private final YooKassaClient yooKassaClient;
+    private final GenerationBalanceService balanceService;
     private final UserServiceData userService;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final Map<String, ScheduledFuture<?>> activeChecks = new ConcurrentHashMap<>();
-    private final Map<String, Long> paymentChatIds = new ConcurrentHashMap<>();
+    private final Map<String, PaymentInfo> packagePayments = new ConcurrentHashMap<>();
 
-    @Override
-    public void startAutoCheck(String paymentId, Long chatId) {
-        log.info("Starting auto-check for payment: {}, chatId: {}", paymentId, chatId);
+    public void startPackageCheck(String paymentId, Long chatId, String packageType, String count, String price) {
+        log.info("Starting package check - Payment: {}, Chat: {}, Type: {}, Count: {}",
+                paymentId, chatId, packageType, count);
 
-        paymentChatIds.put(paymentId, chatId);
+        /* Сохраняем информацию о пакете*/
+        PaymentInfo paymentInfo = new PaymentInfo(paymentId, packageType, count, price, chatId);
+        packagePayments.put(paymentId, paymentInfo);
 
+        /* Запускаем проверку каждые 30 секунд*/
         ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             try {
-                checkPaymentStatus(paymentId);
+                checkPackagePayment(paymentId);
             } catch (Exception e) {
-                log.error("Error in auto-check for payment: {}", paymentId, e);
+                log.error("Error checking package payment: {}", paymentId, e);
             }
-        }, 30, 60, TimeUnit.SECONDS);
+        }, 30, 30, TimeUnit.SECONDS);
 
         activeChecks.put(paymentId, task);
 
+        /* Останавливаем через 2 часа (максимальное время ожидания)*/
         scheduler.schedule(() -> {
             if (activeChecks.containsKey(paymentId)) {
-                log.info("Auto-check expired for payment: {} (24 hours passed)", paymentId);
-                stopAutoCheck(paymentId);
+                log.info("Package check expired for payment: {}", paymentId);
+                stopPackageCheck(paymentId);
             }
-        }, 24, TimeUnit.HOURS);
+        }, 2, TimeUnit.HOURS);
     }
 
-    private void checkPaymentStatus(String paymentId) {
+    private void checkPackagePayment(String paymentId) {
         try {
-            /* ИСПОЛЬЗУЕМ YooKassaClient напрямую*/
             var paymentStatus = yooKassaClient.getPayment(paymentId);
-            log.debug("Auto-check payment {} status: {}", paymentId, paymentStatus.getStatus());
+            log.debug("Package check - Payment: {}, Status: {}", paymentId, paymentStatus.getStatus());
 
             if ("succeeded".equals(paymentStatus.getStatus())) {
-                activateSubscriptionFromPayment(paymentId);
-                stopAutoCheck(paymentId);
+                activatePackage(paymentId);
+                stopPackageCheck(paymentId);
             } else if ("canceled".equals(paymentStatus.getStatus())) {
-                log.info("Payment canceled: {}", paymentId);
-                stopAutoCheck(paymentId);
+                log.info("Package payment canceled: {}", paymentId);
+                stopPackageCheck(paymentId);
             }
 
         } catch (Exception e) {
-            log.error("Error checking payment status: {}", paymentId, e);
+            log.error("Error checking package payment status: {}", paymentId, e);
         }
     }
 
-    private void activateSubscriptionFromPayment(String paymentId) {
+    private void activatePackage(String paymentId) {
         try {
-            Long chatId = paymentChatIds.get(paymentId);
-            if (chatId == null) return;
+            PaymentInfo paymentInfo = packagePayments.get(paymentId);
+            if (paymentInfo == null) {
+                log.error("Payment info not found for: {}", paymentId);
+                return;
+            }
 
+            Long chatId = paymentInfo.getChatId();
             User user = userService.findByTelegramChatId(chatId);
-            if (user == null) return;
+            if (user == null) {
+                log.error("User not found for chatId: {}", chatId);
+                return;
+            }
 
-            /* Получаем информацию о платеже напрямую через YooKassaClient*/
-            var paymentInfo = yooKassaClient.getPayment(paymentId);
-            String amount = paymentInfo.getAmount().getValue();
-
-            /*PaymentService.SubscriptionPlan plan = "2490.00".equals(amount)*/ /* меняем на @Value*/
-            PaymentService.SubscriptionPlan plan = this.subscriptionPlanYearly.equals(amount)
-                    ? PaymentService.SubscriptionPlan.YEARLY
-                    : PaymentService.SubscriptionPlan.MONTHLY;
-
-            boolean success = subscriptionService.activateSubscriptionViaPayment(user.getUsername(), plan);
-
-            if (success) {
-                log.info("Subscription activated via auto-check for user: {}, payment: {}",
-                        user.getUsername(), paymentId);
-            } else {
-                log.error("Failed to activate subscription via auto-check for user: {}",
-                        user.getUsername());
+            /* Активируем пакет*/
+            if ("image".equals(paymentInfo.getPackageType())) {
+                int count = Integer.parseInt(paymentInfo.getCount());
+                balanceService.addImageGenerations(user.getId(), count);
+                log.info("Image package activated - User: {}, Count: {}, Payment: {}",
+                        user.getUsername(), count, paymentId);
+            } else if ("video".equals(paymentInfo.getPackageType())) {
+                int count = Integer.parseInt(paymentInfo.getCount());
+                balanceService.addVideoGenerations(user.getId(), count);
+                log.info("Video package activated - User: {}, Count: {}, Payment: {}",
+                        user.getUsername(), count, paymentId);
             }
 
         } catch (Exception e) {
-            log.error("Error activating subscription from payment: {}", paymentId, e);
+            log.error("Error activating package: {}", paymentId, e);
         } finally {
-            paymentChatIds.remove(paymentId);
+            packagePayments.remove(paymentId);
         }
     }
 
-    @Override
-    public void stopAutoCheck(String paymentId) {
+    public void stopPackageCheck(String paymentId) {
         ScheduledFuture<?> task = activeChecks.get(paymentId);
         if (task != null) {
             task.cancel(false);
             activeChecks.remove(paymentId);
-            paymentChatIds.remove(paymentId);
-            log.info("Auto-check stopped for payment: {}", paymentId);
+            packagePayments.remove(paymentId);
+            log.info("Package check stopped for payment: {}", paymentId);
         }
     }
 
-    @Override
-    public boolean isAutoCheckActive(String paymentId) {
+    public boolean isPackageCheckActive(String paymentId) {
         return activeChecks.containsKey(paymentId);
     }
 
     @PreDestroy
     public void shutdown() {
-        log.info("Shutting down PaymentAutoCheckService");
+        log.info("Shutting down PackageAutoCheckService");
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {

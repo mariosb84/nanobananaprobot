@@ -3,16 +3,22 @@ package org.example.nanobananaprobot.bot.handlers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
+import org.example.nanobananaprobot.bot.service.PackageService;
+import org.example.nanobananaprobot.bot.service.PaymentInfo;
 import org.example.nanobananaprobot.bot.service.TelegramService;
+import org.example.nanobananaprobot.domain.dto.PaymentCreateResponse;
 import org.example.nanobananaprobot.domain.model.User;
+import org.example.nanobananaprobot.service.GenerationBalanceService;
+import org.example.nanobananaprobot.service.PaymentAutoCheckService;
 import org.example.nanobananaprobot.service.PaymentService;
-import org.example.nanobananaprobot.service.SubscriptionService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,31 +30,19 @@ public class PaymentHandlerImpl implements PaymentHandler {
     @Value("${paymentUrl}")
     private String paymentUrl;
 
-    @Value("${app.subscription.monthly.price}")
-    private String monthlyPrice;
-
-    @Value("${app.subscription.yearly.price}")
-    private String yearlyPrice;
-
-    @Value("${amountMonthly}")
-    private String amountMonthly;
-
-    @Value("${amountYearly}")
-    private String amountYearly;
-
-    @Value("${currency}")
-    private String currency;
-
+    private final GenerationBalanceService balanceService;
+    private final PackageService packageService;
     private final PaymentService paymentService;
-    private final SubscriptionService subscriptionService;
     private final UserServiceData userService;
     private final MenuFactory menuFactory;
     private final TelegramService telegramService;
+    private final PaymentAutoCheckService packageAutoCheckService;
 
+    private final Map<String, PaymentInfo> pendingPayments = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     @Override
-    public void handleSubscriptionPayment(Long chatId, String plan) {
+    public void handlePackagePurchase(Long chatId, String packageType, String count) {
         executor.submit(() -> {
             try {
                 User user = userService.findByTelegramChatId(chatId);
@@ -57,38 +51,57 @@ public class PaymentHandlerImpl implements PaymentHandler {
                     return;
                 }
 
-                PaymentService.SubscriptionPlan subscriptionPlan =
-                        "MONTHLY".equals(plan) ?
-                                PaymentService.SubscriptionPlan.MONTHLY :
-                                PaymentService.SubscriptionPlan.YEARLY;
+                String price;
+                String description;
 
-                var paymentResponse = paymentService.createPayment(chatId, subscriptionPlan);
+                if ("image".equals(packageType)) {
+                    price = packageService.getImagePackagePrice(count);
+                    description = "Пакет " + count + " генераций изображений";
+                } else {
+                    price = packageService.getVideoPackagePrice(count);
+                    description = "Пакет " + count + " генераций видео";
+                }
+
+                var paymentResponse = paymentService.createPackagePayment(
+                        chatId,
+                        price,
+                        description,
+                        packageType,
+                        count
+                );
 
                 if (paymentResponse != null && paymentResponse.getId() != null) {
-                    savePaymentId(chatId, paymentResponse.getId());
+                    savePaymentInfo(chatId, paymentResponse.getId(), packageType, count, price);
 
-                    /*String paymentUrl = "https://yoomoney.ru/checkout/payments/v2/contract?orderId=" + paymentResponse.getId();*/ /*меняем на @Value*/
-                    String paymentUrl = this.paymentUrl + paymentResponse.getId();
+                    /* Запускаем автоматическую проверку*/
+                    packageAutoCheckService.startPackageCheck(
+                            paymentResponse.getId(),
+                            chatId,
+                            packageType,
+                            count,
+                            price
+                    );
 
-                    String messageText = "💳 *Оплата подписки*\n\n" +
-                            /*"✅ Сумма: " + (subscriptionPlan == PaymentService.SubscriptionPlan.MONTHLY ? "299" : "2490") + " ₽\n" +*/ /* меняем на @Value*/
-                            "✅ Сумма: " + (subscriptionPlan == PaymentService.SubscriptionPlan.MONTHLY ? this.monthlyPrice : this.yearlyPrice) + this.currency + " \n" +
-                            "📝 Описание: " + subscriptionPlan.getDescription() + "\n\n" +
+                    String confirmationUrl = getConfirmationUrl(paymentResponse);
+                    String paymentUrl = confirmationUrl != null ? confirmationUrl :
+                            this.paymentUrl + paymentResponse.getId();
+
+                    String messageText = "💳 *Оплата пакета генераций*\n\n" +
+                            "📦 Пакет: " + description + "\n" +
+                            "💰 Сумма: " + price + " ₽\n\n" +
                             "🔗 Ссылка для оплаты:\n" +
                             paymentUrl + "\n\n" +
-                            "После успешной оплаты подписка активируется автоматически " +
-                            "втечение 59 секунд!";
+                            "После успешной оплаты генерации добавятся автоматически!";
 
                     telegramService.sendMessage(chatId, messageText);
-                    telegramService.sendMessage(chatId, "🆔 ID платежа: `" + paymentResponse.getId() + "`");
 
                 } else {
                     telegramService.sendMessage(chatId, "❌ Ошибка создания платежа");
                 }
 
             } catch (Exception e) {
-                log.error("Payment error for chatId: {}", chatId, e);
-                telegramService.sendMessage(chatId, "❌ Ошибка при создании платежа: " + e.getMessage());
+                log.error("Package purchase error for chatId: {}", chatId, e);
+                telegramService.sendMessage(chatId, "❌ Ошибка при создании платежа");
             }
         });
     }
@@ -100,21 +113,32 @@ public class PaymentHandlerImpl implements PaymentHandler {
                 var payment = paymentService.getPaymentStatus(paymentId);
 
                 if (payment != null && "succeeded".equals(payment.getStatus())) {
-                    User user = userService.findByTelegramChatId(chatId);
-                    if (user != null) {
-                        String amount = payment.getAmount().getValue();
+                    PaymentInfo paymentInfo = pendingPayments.get(paymentId);
 
-                       /* int days = "2490.00".equals(amount) ? 365 : 30;*/ /* меняем на @Value*/
-                        int days = this.amountYearly.equals(amount) ? 365 : 30;
+                    if (paymentInfo != null) {
+                        User user = userService.findByTelegramChatId(chatId);
 
-                        boolean success = subscriptionService.activateSubscription(user.getUsername(), days);
+                        if (user != null) {
+                            if ("image".equals(paymentInfo.getPackageType())) {
+                                balanceService.addImageGenerations(user.getId(),
+                                        Integer.parseInt(paymentInfo.getCount()));
+                                telegramService.sendMessage(chatId,
+                                        "✅ Пакет из " + paymentInfo.getCount() +
+                                                " генераций изображений добавлен!\n" +
+                                                "🎨 Новый баланс: " + balanceService.getImageBalance(user.getId()));
+                            } else {
+                                balanceService.addVideoGenerations(user.getId(),
+                                        Integer.parseInt(paymentInfo.getCount()));
+                                telegramService.sendMessage(chatId,
+                                        "✅ Пакет из " + paymentInfo.getCount() +
+                                                " генераций видео добавлен!\n" +
+                                                "🎥 Новый баланс: " + balanceService.getVideoBalance(user.getId()));
+                            }
 
-                        if (success) {
-                            telegramService.sendMessage(chatId, "✅ Подписка активирована на " + days + " дней!");
-                            telegramService.sendMessage(menuFactory.createMainMenu(chatId));
-                        } else {
-                            telegramService.sendMessage(chatId, "❌ Ошибка активации подписки");
+                            pendingPayments.remove(paymentId);
                         }
+                    } else {
+                        telegramService.sendMessage(chatId, "⏳ Проверяем информацию о платеже...");
                     }
                 } else {
                     telegramService.sendMessage(chatId, "❌ Платеж не найден или не завершен");
@@ -135,8 +159,7 @@ public class PaymentHandlerImpl implements PaymentHandler {
 
                 if ("succeeded".equals(paymentStatus.getStatus())) {
                     answerCallback(callbackQuery, "✅ Платеж успешно завершен!");
-                    telegramService.sendMessage(chatId, "🎉 Платеж подтвержден! Подписка активирована.");
-                    telegramService.sendMessage(menuFactory.createMainMenu(chatId));
+                    telegramService.sendMessage(chatId, "🎉 Платеж подтвержден! Генерации добавлены.");
                 } else if ("pending".equals(paymentStatus.getStatus())) {
                     answerCallback(callbackQuery, "⏳ Платеж еще обрабатывается...");
                 } else {
@@ -149,33 +172,16 @@ public class PaymentHandlerImpl implements PaymentHandler {
         });
     }
 
-    @Override
-    public void checkAutoPayment(Long chatId) {
-        executor.submit(() -> {
-            try {
-                User user = userService.findByTelegramChatId(chatId);
-                if (user == null || subscriptionService.isSubscriptionActive(user.getUsername())) {
-                    return;
-                }
-
-                telegramService.sendMessage(chatId, "💡 Если вы уже оплатили подписку, нажмите '✅ Проверить оплату' в меню оплаты");
-
-            } catch (Exception e) {
-                log.error("Auto payment check error: {}", e.getMessage());
-            }
-        });
+    private void savePaymentInfo(Long chatId, String paymentId, String packageType, String count, String price) {
+        PaymentInfo info = new PaymentInfo(paymentId, packageType, count, price, chatId);
+        pendingPayments.put(paymentId, info);
     }
 
-    private void savePaymentId(Long chatId, String paymentId) {
-        try {
-            User user = userService.findByTelegramChatId(chatId);
-            if (user != null) {
-                log.info("Payment created - ChatId: {}, User: {}, PaymentId: {}",
-                        chatId, user.getUsername(), paymentId);
-            }
-        } catch (Exception e) {
-            log.error("Error saving payment ID: {}", e.getMessage());
+    private String getConfirmationUrl(PaymentCreateResponse response) {
+        if (response.getConfirmation() != null && response.getConfirmation().getConfirmationUrl() != null) {
+            return response.getConfirmation().getConfirmationUrl();
         }
+        return null;
     }
 
     private void answerCallback(CallbackQuery callbackQuery, String text) {

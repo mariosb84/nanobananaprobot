@@ -22,12 +22,16 @@ public class UserStateManager {
     public static final String STATE_REGISTER_EMAIL = "REGISTER_EMAIL";
     public static final String STATE_WAITING_PAYMENT_ID = "WAITING_FOR_PAYMENT_ID";
     public static final String STATE_AUTHORIZED_MAIN = "AUTHORIZED_MAIN_MENU";
-    public static final String STATE_SUBSCRIPTION_MENU = "SUBSCRIPTION_MENU";
 
     /* НОВЫЕ СОСТОЯНИЯ ДЛЯ ГЕНЕРАЦИИ*/
     public static final String STATE_WAITING_IMAGE_PROMPT = "WAITING_IMAGE_PROMPT";
     public static final String STATE_WAITING_VIDEO_PROMPT = "WAITING_VIDEO_PROMPT";
     public static final String STATE_GENERATION_IN_PROGRESS = "GENERATION_IN_PROGRESS";
+
+    /* СОСТОЯНИЯ ДЛЯ ПОКУПКИ ПАКЕТОВ*/
+    public static final String STATE_WAITING_PACKAGE_TYPE = "WAITING_PACKAGE_TYPE";
+    public static final String STATE_WAITING_IMAGE_PACKAGE = "WAITING_IMAGE_PACKAGE";
+    public static final String STATE_WAITING_VIDEO_PACKAGE = "WAITING_VIDEO_PACKAGE";
 
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);

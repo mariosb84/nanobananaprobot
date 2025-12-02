@@ -75,14 +75,8 @@ public class User implements UserDetails {
         return listAuthorities;
     }
 
-    @Column(name = "subscription_end_date")
-    private LocalDateTime subscriptionEndDate;
-
     @Column(name = "telegram_chat_id", unique = true)
     private Long telegramChatId;
-
-    @Column(name = "trial_used")
-    private Boolean trialUsed;
 
     @Override
     public String getUsername() {
@@ -107,11 +101,6 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-    public boolean isSubscriptionActive() {
-        return subscriptionEndDate != null
-                && subscriptionEndDate.isAfter(LocalDateTime.now());
     }
 
 }

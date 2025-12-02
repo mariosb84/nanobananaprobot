@@ -8,9 +8,8 @@ import org.example.nanobananaprobot.domain.dto.SignUpRequest;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.errors.InvalidCredentialsException;
 import org.example.nanobananaprobot.service.AuthenticationService;
-import org.example.nanobananaprobot.service.SubscriptionService;
+import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,15 +21,12 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class AuthService {
 
-    @Value("${app.trial.period-days}")
-    private int trialPeriodDays;
-
     private final AuthenticationService authenticationService;
     private final UserServiceData userService;
     private final UserStateManager stateManager;
     private final TelegramService telegramService;
     private final MenuFactory menuFactory;
-    private final SubscriptionService subscriptionService;
+    private final GenerationBalanceService balanceService; /* ЗАМЕНЯЕМ*/
 
     public void handleLoginCommand(Long chatId) {
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_USERNAME);
@@ -103,18 +99,23 @@ public class AuthService {
         request.setEmail(email);
 
         if (authenticationService.signUp(request).isPresent()) {
-            subscriptionService.activateTrialSubscription(username);
+            /* Добавляем 3 бесплатные генерации*/
+            User user = userService.findUserByUsername(username);
+            if (user != null) {
+                balanceService.addImageGenerations(user.getId(), 3);
+                log.info("Added 3 free generations for new user: {}", username);
+            }
 
             SignInRequest loginRequest = new SignInRequest();
             loginRequest.setUsername(username);
             loginRequest.setPassword(password);
 
-            Optional<User> user = authenticationService.signIn(loginRequest);
-            if (user.isPresent()) {
+            Optional<User> loggedInUser = authenticationService.signIn(loginRequest);
+            if (loggedInUser.isPresent()) {
                 userService.updateTelegramChatId(username, chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 telegramService.sendMessage(chatId, "✅ Регистрация и авторизация успешны!");
-                telegramService.sendMessage(chatId, "🎉 Вам активирован пробный период на " + trialPeriodDays + " дней!");
+                telegramService.sendMessage(chatId, "🎉 Вам добавлено 3 бесплатные генерации изображений!");
 
                 CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
                         .execute(() -> telegramService.sendMessage(menuFactory.createMainMenu(chatId)));

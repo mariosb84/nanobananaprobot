@@ -6,8 +6,12 @@ public interface MenuFactory {
     SendMessage createWelcomeMenu(Long chatId);
     SendMessage createMainMenu(Long chatId);
     SendMessage createMainMenu(Long chatId, boolean afterGeneration);
-    SendMessage createSubscriptionMenu(Long chatId);
+    SendMessage createSubscriptionMenu(Long chatId); /* Можно удалить позже*/
     SendMessage createInfoMenu(Long chatId);
     SendMessage createContactsMenu(Long chatId);
-    SendMessage createStatsMenu(Long chatId); // НОВЫЙ МЕТОД
+    SendMessage createStatsMenu(Long chatId);
+
+    /* НОВЫЕ МЕТОДЫ ДЛЯ ПАКЕТОВ*/
+    SendMessage createImagePackagesMenu(Long chatId);
+    SendMessage createVideoPackagesMenu(Long chatId);
 }

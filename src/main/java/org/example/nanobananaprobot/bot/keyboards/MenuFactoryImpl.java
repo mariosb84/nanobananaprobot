@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.constants.TextConstants;
 import org.example.nanobananaprobot.domain.model.User;
-import org.example.nanobananaprobot.service.SubscriptionService;
+import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,8 @@ public class MenuFactoryImpl implements MenuFactory {
     private String currencySecond;
 
     private final UserServiceData userService;
-    private final SubscriptionService subscriptionService;
+
+    private final GenerationBalanceService balanceService; /* ЗАМЕНЯЕМ*/
 
     @Override
     public SendMessage createWelcomeMenu(Long chatId) {
@@ -70,15 +71,29 @@ public class MenuFactoryImpl implements MenuFactory {
     @Override
     public SendMessage createMainMenu(Long chatId, boolean afterGeneration) {
         User user = userService.findByTelegramChatId(chatId);
-        String status = user != null ? getSubscriptionStatus(user.getUsername()) : "❌ Подписка: не активна";
+
+        String status = "";
+        if (user != null) {
+            int imageBalance = balanceService.getImageBalance(user.getId());
+            int videoBalance = balanceService.getVideoBalance(user.getId());
+            status = "🎨 Баланс изображений: " + imageBalance + "\n" +
+                    "🎥 Баланс видео: " + videoBalance + "\n\n";
+        }
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
 
         if (!afterGeneration) {
-            message.setText("🏠 *Главное меню*\n\n" + status + "\n\nВыберите действие:");
+            message.setText("🏠 *Главное меню*\n\n" + status + "Выберите действие:");
         } else {
-            message.setText("✅ *Генерация завершена!*\n\n" + status + "\n\nВыберите следующее действие:");
+            message.setText("✅ *Генерация завершена!*\n\n" + status + "Выберите следующее действие:");
+        }
+        message.setParseMode("Markdown");
+
+        if (!afterGeneration) {
+            message.setText("🏠 *Главное меню*\n\n" + status + "Выберите действие:");
+        } else {
+            message.setText("✅ *Генерация завершена!*\n\n" + status + "Выберите следующее действие:");
         }
         message.setParseMode("Markdown");
 
@@ -87,22 +102,22 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        // Основные функции генерации
+        /* Генерация*/
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
         row1.add(new KeyboardButton("🎥 Сгенерировать видео"));
 
-        // Управление подпиской
+        /* Покупка пакетов*/
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("💳 Оплатить подписку"));
-        row2.add(new KeyboardButton("📊 Статистика"));
+        row2.add(new KeyboardButton("🛒 Купить генерации"));
+        row2.add(new KeyboardButton("📊 Мой баланс"));
 
-        // Информация и настройки
+        /* Инфо*/
         KeyboardRow row3 = new KeyboardRow();
         row3.add(new KeyboardButton("📋 Информация"));
         row3.add(new KeyboardButton("📞 Контакты"));
 
-        // Выход
+        /* Выход*/
         KeyboardRow row4 = new KeyboardRow();
         row4.add(new KeyboardButton("❌ Выйти"));
 
@@ -110,6 +125,7 @@ public class MenuFactoryImpl implements MenuFactory {
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
+
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
 
@@ -150,8 +166,6 @@ public class MenuFactoryImpl implements MenuFactory {
 
         return message;
     }
-
-    // УДАЛЯЕМ createKeywordsMenu - больше не нужен
 
     @Override
     public SendMessage createInfoMenu(Long chatId) {
@@ -195,14 +209,22 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
-    // ДОБАВЛЯЕМ НОВЫЙ МЕТОД ДЛЯ СТАТИСТИКИ
+    /* ДОБАВЛЯЕМ НОВЫЙ МЕТОД ДЛЯ СТАТИСТИКИ*/
+    @Override
     public SendMessage createStatsMenu(Long chatId) {
         User user = userService.findByTelegramChatId(chatId);
         String stats = "📊 *Ваша статистика*\n\n";
 
         if (user != null) {
             stats += "👤 Логин: " + user.getUsername() + "\n";
-            stats += getSubscriptionStatus(user.getUsername()) + "\n";
+
+            /* Получаем баланс из нового сервиса*/
+            int imageBalance = balanceService.getImageBalance(user.getId());
+            int videoBalance = balanceService.getVideoBalance(user.getId());
+
+            stats += "🎨 Баланс изображений: " + imageBalance + "\n";
+            stats += "🎥 Баланс видео: " + videoBalance + "\n\n";
+
             stats += "*Генерации в этом месяце:*\n";
             stats += "🎨 Изображений: 0\n";
             stats += "🎥 Видео: 0\n";
@@ -230,7 +252,113 @@ public class MenuFactoryImpl implements MenuFactory {
     }
 
     private String getSubscriptionStatus(String username) {
-        return subscriptionService.getSubscriptionStatus(username);
+        /* Заменяем на получение баланса*/
+        User user = userService.findUserByUsername(username);
+        if (user == null) return "❌ Пользователь не найден";
+
+        int imageBalance = balanceService.getImageBalance(user.getId());
+        int videoBalance = balanceService.getVideoBalance(user.getId());
+
+        return "🎨 Изображений: " + imageBalance + "\n" +
+                "🎥 Видео: " + videoBalance;
+    }
+
+    @Override
+    public SendMessage createImagePackagesMenu(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+
+        String text = "🎨 *Пакеты генерации изображений*\n\n";
+        text += "💥 Чем больше генераций вы покупаете, тем выше скидка.\n\n";
+        text += "Выберите желаемый тариф 👇\n\n";
+        text += "3 генерации - 39₽ | 13₽ за генерацию\n";
+        text += "10 генераций - 99₽ | 10₽ за генерацию\n";
+        text += "50 генераций - 449₽ | 9₽ за генерацию\n";
+        text += "100 генераций - 799₽ | 8₽ за генерацию\n";
+        text += "300 генераций - 2099₽ | 7₽ за генерацию\n\n";
+        text += "*Выберите количество:*";
+
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        /* Каждый пакет в отдельной строке*/
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("3 генерации - 39₽"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("10 генераций - 99₽"));
+
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("50 генераций - 449₽"));
+
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add(new KeyboardButton("100 генераций - 799₽"));
+
+        KeyboardRow row5 = new KeyboardRow();
+        row5.add(new KeyboardButton("300 генераций - 2099₽"));
+
+        KeyboardRow row6 = new KeyboardRow();
+        row6.add(new KeyboardButton("🔙 Назад"));
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
+        rows.add(row5);
+        rows.add(row6);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }
+
+    @Override
+    public SendMessage createVideoPackagesMenu(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+
+        String text = "🎥 *Пакеты генерации видео*\n\n";
+        text += "Выберите желаемый тариф 👇\n\n";
+        text += "1 видео - 50₽\n";
+        text += "5 видео - 225₽ (45₽/видео)\n";
+        text += "10 видео - 399₽ (40₽/видео)\n\n";
+        text += "*Выберите количество:*";
+
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("1 видео - 50₽"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("5 видео - 225₽"));
+
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("10 видео - 399₽"));
+
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add(new KeyboardButton("🔙 Назад"));
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
     }
 
 }
