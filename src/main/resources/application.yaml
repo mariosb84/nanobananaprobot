@@ -73,11 +73,6 @@ app:
 
 # URLs (для PaymentHandlerImpl)
 paymentUrl: "https://yoomoney.ru/checkout/payments/v2/contract?orderId="
-orderUrl: "https://profi.ru/backoffice/n.php?o="
-orderUrlSecond: "https://profi.ru/backoffice/n.php?o="
-webDriverManagerGetDriver: "https://profi.ru/backoffice/a.php"
-webDriverManagerGetDriverSecond: "https://profi.ru/backoffice/n.php"
-searchUrl: "https://profi.ru/backoffice/n.php?q="
 
 # Prices and Currency (для MenuFactoryImpl и PaymentService)
 subscriptionPlanYearly: "2490.00"
