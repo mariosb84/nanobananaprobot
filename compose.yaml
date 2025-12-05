@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgres:13
@@ -7,15 +8,15 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=SB14041984sb
     ports:
-      - "5432:5432"  # Проброс порта на хост для IDEA
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - profi-network
+      - nanobananaprobot-network
 
   profi-app:
-    #build: .   # ← ЭТО УБРАТЬ!
-    image: nanobananaprobot-app:latest  # ← ЭТО ДОБАВИТЬ!
+    build: .   # ← ОСТАВЛЯЕМ build!
+    # image: nanobananaprobot-app:latest  # ← ЭТО УБРАТЬ, иначе будет конфликт
     ports:
       - "9900:9900"
     environment:
@@ -23,9 +24,12 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=SB14041984sb
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - INSIDE_DOCKER=true
+      - TELEGRAM_BOT_TOKEN=8527977714:AAFu97URfKY8nc5uwoKlATtGp7xE1V_y6X4
+      - TELEGRAM_BOT_USERNAME=NanoBananaProBot_bot
+      - PROXYAPI_KEY=sk-R4KbljvvsNuEXYdjqQ4lCBYwTgxVeTin
+      - HIGGSFIELD_CLIENT_ID=a990c48e-9642-4714-aabf-5513b4e51394
+      - HIGGSFIELD_CLIENT_SECRET=4805a6812bc969f4cc09469ec8939b97933634c1ed0fefac09e87451ebce3603
       - LOGGING_LEVEL_ORG_EXAMPLE_NANOBANANAPROBOT=DEBUG
-      - LOGGING_LEVEL_ROOT=INFO
     depends_on:
       - postgres
     restart: unless-stopped
@@ -36,5 +40,5 @@ volumes:
   postgres_data:
 
 networks:
-  profi-network:
+  nanobananaprobot-network:
     driver: bridge
