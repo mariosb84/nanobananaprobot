@@ -16,6 +16,14 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     enabled: false
+  # Настройка асинхронных задач для @Async
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 100
+
   # Logging
   logging:
     level:
@@ -24,6 +32,8 @@ spring:
         springframework:
           web: error
           security: DEBUG
+          # Включим логи для ваших сервисов
+      org.example.nanobananaprobot: DEBUG
 
 server:
   port: 9900
@@ -45,6 +55,12 @@ yookassa:
   secret-key: ${YOOKASSA_SECRET_KEY:live_TwRr2APY3ngv0M-aBnhAewcpSk8oPyltkLGRg_Pgh-g}
   test-mode: false
 
+# ProxyAPI для DALL-E 3
+# ВНИМАНИЕ: Никогда не храните ключи прямо в YAML!
+# Используйте переменные окружения: export PROXYAPI_KEY="ваш_ключ"
+proxyapi:
+  key: ${PROXYAPI_KEY:sk-R4KbljvvsNuEXYdjqQ4lCBYwTgxVeTin}  # Безопасное хранение ключа
+
 # Application Settings
 app:
   payment:
@@ -64,26 +80,26 @@ app:
       "10": "399"
   trial:
     free-generations: "3"
-    period-days: "7"  # Для AuthService (если используется)
+    period-days: "7"
   subscription:
     monthly:
       price: "299.00"
     yearly:
       price: "2490.00"
 
-# URLs (для PaymentHandlerImpl)
+# URLs
 paymentUrl: "https://yoomoney.ru/checkout/payments/v2/contract?orderId="
 
-# Prices and Currency (для MenuFactoryImpl и PaymentService)
+# Prices and Currency
 subscriptionPlanYearly: "2490.00"
 subscriptionPlanMonthly: "299.00"
 amountMonthly: "299.00"
 amountYearly: "2490.00"
-amountSetCurrency: "RUB"  # Для PaymentService
+amountSetCurrency: "RUB"
 currency: " ₽"
-currencySecond: "₽"  # Для MenuFactoryImpl
+currencySecond: "₽"
 
-# API URLs (для YooKassaClient)
+# API URLs для YooKassa
 API_URL: "https://api.yookassa.ru/v3/"
 TEST_API_URL: "https://api.yookassa.ru/v3/"
 
@@ -94,9 +110,14 @@ rest:
   read:
     timeout: 5000
 
-# Higgsfield AI API
+# Настройки для нового ProxyApiImageService
+image:
+  generation:
+    timeout: 30000  # Таймаут для HTTP-клиента
+    model: "dall-e-3"  # Используемая модель
+    size: "1024x1024"  # Размер изображения
+    quality: "standard"  # Качество
+
 higgsfield:
-  api:
-    key: ${HIGGSFIELD_API_KEY:test_key}
-    url: "https://api.higgsfield.ai/v1"
-    timeout: 30000
+  client-id: ${HIGGSFIELD_CLIENT_ID:a990c48e-9642-4714-aabf-5513b4e51394}
+  client-secret: ${HIGGSFIELD_CLIENT_SECRET:4805a6812bc969f4cc09469ec8939b97933634c1ed0fefac09e87451ebce3603}

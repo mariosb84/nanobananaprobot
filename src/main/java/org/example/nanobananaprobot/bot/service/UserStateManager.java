@@ -33,6 +33,8 @@ public class UserStateManager {
     public static final String STATE_WAITING_IMAGE_PACKAGE = "WAITING_IMAGE_PACKAGE";
     public static final String STATE_WAITING_VIDEO_PACKAGE = "WAITING_VIDEO_PACKAGE";
 
+    public static final String STATE_WAITING_TEST_PROMPT = "WAITING_TEST_PROMPT";
+
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
     }

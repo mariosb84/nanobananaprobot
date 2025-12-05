@@ -151,6 +151,12 @@ public class MessageHandlerImpl implements MessageHandler {
                 handleVideoPackageSelection(chatId, text);
                 return true;
 
+
+            case UserStateManager.STATE_WAITING_TEST_PROMPT:
+                generationService.testHiggsfieldGeneration(chatId, text);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                return true;
+
             default:
                 return false;
         }
@@ -291,6 +297,14 @@ public class MessageHandlerImpl implements MessageHandler {
             case "✅ Проверить оплату":
                 handleCheckPaymentCommand(chatId);
                 break;
+
+            case "/test_higgsfield":
+                if (isUserAuthorized(chatId)) {
+                    stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_TEST_PROMPT);
+                    telegramService.sendMessage(chatId, "Введите промпт для теста Higgsfield:");
+                }
+                break;
+
             default:
                 handleAuthorizedCommand(chatId, text);
         }
