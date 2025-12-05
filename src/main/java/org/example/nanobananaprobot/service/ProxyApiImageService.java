@@ -29,10 +29,10 @@ public class ProxyApiImageService {
         this.objectMapper = new ObjectMapper();
     }
 
-    public String generateImage(String prompt) throws Exception {
+    public String generateImage(String prompt) throws Exception {              /* models : "dall-e-3"/"sd3-large"/"sd3-medium"/"dall-e-2" */
         String requestBody = String.format("""
             {
-                "model": "sd3-large",
+                "model": "dall-e-3",
                 "prompt": "%s",
                 "n": 1,
                 "size": "1024x1024",
