@@ -32,7 +32,7 @@ public class ProxyApiImageService {
     public String generateImage(String prompt) throws Exception {              /* models : "dall-e-3"/"sd3-large"/"sd3-medium"/"dall-e-2" */
         String requestBody = String.format("""
             {
-                "model": "dall-e-3",
+                "model": "sd3-large",
                 "prompt": "%s",
                 "n": 1,
                 "size": "1024x1024",

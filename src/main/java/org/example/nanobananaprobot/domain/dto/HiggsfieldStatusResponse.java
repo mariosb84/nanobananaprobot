@@ -2,6 +2,7 @@ package org.example.nanobananaprobot.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class HiggsfieldStatusResponse {
@@ -10,18 +11,22 @@ public class HiggsfieldStatusResponse {
 
     private String status; // "queued", "processing", "completed", "failed"
 
-    private ResultData result;
+    @JsonProperty("status_url")
+    private String statusUrl;
+
+    @JsonProperty("cancel_url")
+    private String cancelUrl;
+
+    private List<ImageData> images;
+    private VideoData video;
 
     @Data
-    public static class ResultData {
-        @JsonProperty("image_url")
-        private String imageUrl;
-
-        @JsonProperty("video_url")
-        private String videoUrl;
-
-        @JsonProperty("error_message")
-        private String errorMessage;
+    public static class ImageData {
+        private String url;
     }
 
+    @Data
+    public static class VideoData {
+        private String url;
+    }
 }

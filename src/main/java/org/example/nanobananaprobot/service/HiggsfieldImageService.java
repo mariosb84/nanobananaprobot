@@ -50,6 +50,7 @@ public class HiggsfieldImageService {
                 .uri(URI.create(BASE_URL + "/higgsfield-ai/soul/standard"))
                 .header("Authorization", "Key " + clientId + ":" + clientSecret)
                 .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
@@ -66,7 +67,6 @@ public class HiggsfieldImageService {
     }
 
     private String waitForResult(String requestId) throws Exception {
-        // Проверяем статус до 30 раз с интервалом 10 секунд
         for (int i = 0; i < 30; i++) {
             Thread.sleep(10000);
 
@@ -77,20 +77,19 @@ public class HiggsfieldImageService {
                     .GET()
                     .build();
 
-            HttpResponse<String> statusResponse = httpClient.send(statusRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> statusResponse = httpClient.send(statusRequest,
+                    HttpResponse.BodyHandlers.ofString());
 
             if (statusResponse.statusCode() == 200) {
                 HiggsfieldStatusResponse status = objectMapper.readValue(
                         statusResponse.body(), HiggsfieldStatusResponse.class);
 
                 if ("completed".equals(status.getStatus())) {
-                    if (status.getResult() != null && status.getResult().getImageUrl() != null) {
-                        return status.getResult().getImageUrl();
+                    if (status.getImages() != null && !status.getImages().isEmpty()) {
+                        return status.getImages().get(0).getUrl();
                     }
                 } else if ("failed".equals(status.getStatus())) {
-                    String error = status.getResult() != null ?
-                            status.getResult().getErrorMessage() : "Unknown error";
-                    throw new RuntimeException("Генерация не удалась: " + error);
+                    throw new RuntimeException("Генерация не удалась");
                 }
                 // Если still processing - продолжаем ждать
             }
