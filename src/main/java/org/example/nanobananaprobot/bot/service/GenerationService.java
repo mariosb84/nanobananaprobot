@@ -3,10 +3,7 @@ package org.example.nanobananaprobot.bot.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.domain.model.User;
-import org.example.nanobananaprobot.service.GenerationBalanceService;
-import org.example.nanobananaprobot.service.HiggsfieldImageService;
-import org.example.nanobananaprobot.service.ProxyApiImageService;
-import org.example.nanobananaprobot.service.UserServiceData;
+import org.example.nanobananaprobot.service.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +15,14 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class GenerationService {
 
-    // Заменяем старый HiggsfieldAIService на новый
     private final ProxyApiImageService proxyApiImageService;
     private final UserServiceData userService;
     private final GenerationBalanceService balanceService;
     private final TelegramService telegramService;
     private final UserStateManager stateManager;
     private final HiggsfieldImageService higgsfieldImageService;
+
+    private final CometApiService cometApiService;
 
     @Transactional
     public void handleImageGeneration(Long chatId, String prompt) {
@@ -64,11 +62,11 @@ public class GenerationService {
         startAsyncGeneration(chatId, user.getId(), prompt);
     }
 
-    /**
+    /*/**
      * Асинхронная генерация изображения через DALL-E 3
      * Метод выполняется в отдельном потоке
      */
-    @Async
+   /* @Async
     public void startAsyncGeneration(Long chatId, Long userId, String prompt) {
         try {
             log.info("Начало генерации для chatId: {}, prompt: {}", chatId, prompt);
@@ -107,6 +105,70 @@ public class GenerationService {
         } finally {
             // 9. Возвращаем пользователя в главное меню
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+        }
+    }*/
+
+    /**
+     * Асинхронная генерация изображения через Nano Banana Pro (CometAPI)
+     * Метод выполняется в отдельном потоке
+     */
+    @Async
+    public void startAsyncGeneration(Long chatId, Long userId, String prompt) {
+        try {
+            log.info("Начало генерации через CometAPI для chatId: {}, prompt: {}", chatId, prompt);
+
+            // 1. Вызов нового API Comet (Nano Banana Pro)
+            byte[] imageBytes = cometApiService.generateImage(prompt);
+
+            // 2. Получаем актуальный баланс после успешной генерации
+            int newBalance = balanceService.getImageBalance(userId);
+
+            // 3. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)
+            telegramService.sendPhoto(chatId, imageBytes, "generated_image.jpg");
+
+            // 4. Отправляем текстовое подтверждение
+            telegramService.sendMessage(chatId,
+                    "✅ Изображение готово!\n\n" +
+                            "📝 Промпт: _" + prompt + "_\n" +
+                            "🎨 Осталось генераций: " + newBalance
+            );
+
+            log.info("Генерация через CometAPI успешна для chatId: {}, размер изображения: {} байт",
+                    chatId, imageBytes.length);
+
+        } catch (Exception e) {
+            log.error("Ошибка генерации через CometAPI для chatId: {}", chatId, e);
+
+            // 5. Возвращаем баланс при ошибке
+            try {
+                balanceService.addImageGenerations(userId, 1);
+                log.info("Баланс возвращен для userId: {} после ошибки CometAPI", userId);
+            } catch (Exception ex) {
+                log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
+            }
+
+            // 6. Уведомляем пользователя об ошибке
+            String errorMessage = "❌ Произошла ошибка при генерации изображения\n\n" +
+                    "🎨 Баланс возвращен\n" +
+                    "⚠️ " + getErrorMessage(e);
+
+            telegramService.sendMessage(chatId, errorMessage);
+        } finally {
+            // 7. Возвращаем пользователя в главное меню
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+        }
+    }
+
+    /**
+     * Вспомогательный метод для форматирования сообщений об ошибках
+     */
+    private String getErrorMessage(Exception e) {
+        if (e.getMessage().contains("quota") || e.getMessage().contains("balance")) {
+            return "Проверьте баланс аккаунта CometAPI";
+        } else if (e.getMessage().contains("timeout") || e.getMessage().contains("connection")) {
+            return "Проблемы с подключением к сервису, попробуйте позже";
+        } else {
+            return "Попробуйте изменить запрос или повторить позже";
         }
     }
 

@@ -7,7 +7,12 @@ import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.io.ByteArrayInputStream;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -51,6 +56,24 @@ public class TelegramService extends DefaultAbsSender {
         } catch (TelegramApiException e) {
             log.error("Error answering callback: {}", e.getMessage());
         }
+    }
+
+    public void sendPhoto(Long chatId, byte[] photoBytes, String fileName) {
+        try {
+            SendPhoto sendPhoto = new SendPhoto();
+            sendPhoto.setChatId(chatId.toString());
+            InputFile inputFile = new InputFile(new ByteArrayInputStream(photoBytes), fileName);
+            sendPhoto.setPhoto(inputFile);
+            // Используем this.execute(), а не telegramBot.execute()
+            execute(sendPhoto); // <- Ключевое исправление
+        } catch (TelegramApiException e) {
+            log.error("Ошибка отправки фото в чат {}", chatId, e);
+            throw new RuntimeException("Не удалось отправить фото", e);
+        }
+    }
+
+    public void sendMediaGroup(Long chatId, List<byte[]> imagesBytes, List<String> fileNames) {
+        // Реализация для отправки альбома
     }
 
 }

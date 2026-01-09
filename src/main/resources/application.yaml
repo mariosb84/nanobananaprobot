@@ -121,3 +121,6 @@ image:
 higgsfield:
   client-id: ${HIGGSFIELD_CLIENT_ID:a990c48e-9642-4714-aabf-5513b4e51394}
   client-secret: ${HIGGSFIELD_CLIENT_SECRET:4805a6812bc969f4cc09469ec8939b97933634c1ed0fefac09e87451ebce3603}
+cometapi:
+  url: "https://api.cometapi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+  key: ${COMET_API_KEY:sk-MwuE5tWfsaX20dORAPTopKzjvyJRYyccqYEVMK9VUCznbJ9W}
