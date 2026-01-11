@@ -3,16 +3,14 @@ package org.example.nanobananaprobot.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.nanobananaprobot.domain.dto.CometApiResponse;
+import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class CometApiService {
@@ -31,45 +29,100 @@ public class CometApiService {
         this.objectMapper = new ObjectMapper();
     }
 
-    public byte[] generateImage(String prompt) {
-        // 1. Формируем заголовки
+    /**
+     * Генерация изображения с настройками
+     */
+    public byte[] generateImage(String prompt, ImageConfig config) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
-        // 2. Формируем тело запроса
-        Map<String, Object> requestBody = createRequestBody(prompt);
+        // Формируем запрос с учетом ImageConfig
+        Map<String, Object> requestBody = createRequestBody(prompt, config);
 
-        // 3. Отправляем запрос
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(API_URL, request, String.class);
 
-        // 4. Парсим ответ с помощью DTO
         return parseResponse(response.getBody());
     }
 
-    private Map<String, Object> createRequestBody(String prompt) {
+    /**
+     * Редактирование изображения (image-to-image)
+     */
+    public byte[] editImage(byte[] sourceImage, String prompt, ImageConfig config) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        // Формируем запрос для редактирования
+        Map<String, Object> requestBody = createEditRequestBody(sourceImage, prompt, config);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(API_URL, request, String.class);
+
+        return parseResponse(response.getBody());
+    }
+
+    /**
+     * Создание тела запроса для генерации
+     */
+    private Map<String, Object> createRequestBody(String prompt, ImageConfig config) {
         Map<String, Object> requestBody = new HashMap<>();
 
-        // Создаем parts
-        Map<String, Object> textPart = new HashMap<>();
-        textPart.put("text", prompt);
-
-        Map<String, Object> parts = new HashMap<>();
-        parts.put("parts", List.of(textPart));
-
-        // Создаем contents
-        Map<String, Object> contents = new HashMap<>();
-        contents.put("contents", List.of(parts));
+        // Текстовая часть
+        Map<String, Object> textPart = Map.of("text", prompt);
+        Map<String, Object> parts = Map.of("parts", List.of(textPart));
+        Map<String, Object> contents = Map.of("contents", List.of(parts));
 
         requestBody.putAll(contents);
 
-        // Создаем generationConfig
+        // Конфигурация генерации
         Map<String, Object> generationConfig = new HashMap<>();
         Map<String, String> imageConfig = new HashMap<>();
-        imageConfig.put("aspectRatio", "1:1");
-        generationConfig.put("imageConfig", imageConfig);
 
+        imageConfig.put("aspectRatio", config.getAspectRatio());
+        imageConfig.put("resolution", config.getResolution());
+
+        generationConfig.put("imageConfig", imageConfig);
+        requestBody.put("generationConfig", generationConfig);
+
+        return requestBody;
+    }
+
+    /**
+     * Создание тела запроса для редактирования
+     */
+    private Map<String, Object> createEditRequestBody(byte[] sourceImage, String prompt, ImageConfig config) {
+        Map<String, Object> requestBody = new HashMap<>();
+
+        // Кодируем исходное изображение в Base64
+        String base64Image = Base64.getEncoder().encodeToString(sourceImage);
+
+        // Создаем массив parts: [изображение, текст]
+        List<Map<String, Object>> parts = new ArrayList<>();
+
+        // Часть с изображением
+        parts.add(Map.of(
+                "inlineData", Map.of(
+                        "mimeType", "image/jpeg",
+                        "data", base64Image
+                )
+        ));
+
+        // Часть с текстовым промптом
+        parts.add(Map.of("text", prompt));
+
+        Map<String, Object> contents = Map.of("contents", List.of(Map.of("parts", parts)));
+        requestBody.putAll(contents);
+
+        // Конфигурация генерации
+        Map<String, Object> generationConfig = new HashMap<>();
+        Map<String, String> imageConfig = new HashMap<>();
+
+        imageConfig.put("aspectRatio", config.getAspectRatio());
+        imageConfig.put("resolution", config.getResolution());
+
+        generationConfig.put("imageConfig", imageConfig);
         requestBody.put("generationConfig", generationConfig);
 
         return requestBody;

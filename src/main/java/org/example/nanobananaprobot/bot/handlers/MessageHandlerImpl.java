@@ -7,6 +7,7 @@ import org.example.nanobananaprobot.bot.service.*;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -17,6 +18,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.telegram.telegrambots.meta.api.objects.PhotoSize;
+import java.util.Comparator;
 
 @Slf4j
 @Service
@@ -41,6 +46,18 @@ public class MessageHandlerImpl implements MessageHandler {
         log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
         try {
+
+            /* ДОБАВЛЯЕМ НОВЫЕ ГЛОБАЛЬНЫЕ КОМАНДЫ*/
+            if (text.equals("/settings") || text.equals("⚙️ Настройки")) {
+                handleSettingsCommand(chatId);
+                return;
+            }
+
+            if (text.equals("/edit") || text.equals("✏️ Редактировать изображение")) {
+                handleEditCommand(chatId);
+                return;
+            }
+
             /* ГЛОБАЛЬНЫЕ КОМАНДЫ*/
             if (text.equals("/start") || text.equals("🏠 Старт")) {
                 handleStartCommand(chatId);
@@ -82,7 +99,11 @@ public class MessageHandlerImpl implements MessageHandler {
                 userState.equals(UserStateManager.STATE_REGISTER_USERNAME) ||
                 userState.equals(UserStateManager.STATE_REGISTER_PASSWORD) ||
                 userState.equals(UserStateManager.STATE_REGISTER_EMAIL) ||
-                userState.equals(UserStateManager.STATE_WAITING_PAYMENT_ID)) {
+                userState.equals(UserStateManager.STATE_WAITING_PAYMENT_ID) ||
+                userState.equals(UserStateManager.STATE_WAITING_EDIT_PROMPT) ||
+                userState.equals(UserStateManager.STATE_WAITING_QUALITY_SETTINGS)
+
+        ) {
 
             if (isMenuCommand(text)) {
                 telegramService.sendMessage(chatId, "❌ Завершите текущий процесс ввода");
@@ -157,8 +178,202 @@ public class MessageHandlerImpl implements MessageHandler {
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 return true;
 
+            case UserStateManager.STATE_WAITING_EDIT_PROMPT:
+                handleEditPromptInput(chatId, text);
+                return true;
+
+            case UserStateManager.STATE_WAITING_QUALITY_SETTINGS:
+                handleQualitySettingsInput(chatId, text);
+                return true;
+
             default:
                 return false;
+        }
+    }
+
+    /* НОВЫЙ МЕТОД: Обработка команды редактирования*/
+    private void handleEditCommand(Long chatId) {
+        if (!isUserAuthorized(chatId)) {
+            telegramService.sendMessage(chatId, "❌ Пожалуйста, авторизуйтесь: /login");
+            return;
+        }
+
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null) {
+            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+            return;
+        }
+
+        // Проверяем баланс
+        if (balanceService.getImageBalance(user.getId()) <= 0) {
+            telegramService.sendMessage(chatId,
+                    "❌ Недостаточно генераций!\n\n" +
+                            "🎨 Баланс: 0 изображений\n" +
+                            "🛒 Купите пакет генераций в магазине"
+            );
+            return;
+        }
+
+        // Устанавливаем состояние ожидания загрузки фото
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_UPLOAD);
+        telegramService.sendMessage(chatId,
+                "📸 *Загрузите фото для редактирования:*\n\n" +
+                        "Отправьте изображение, которое хотите изменить.\n" +
+                        "После загрузки введите текстовое описание изменений."
+        );
+    }
+
+    /* НОВЫЙ МЕТОД: Обработка ввода промпта для редактирования*/
+    private void handleEditPromptInput(Long chatId, String prompt) {
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null) {
+            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+            return;
+        }
+
+        // Получаем загруженное изображение
+        byte[] sourceImage = stateManager.getUploadedImage(chatId);
+        if (sourceImage == null) {
+            telegramService.sendMessage(chatId, "❌ Изображение не найдено. Попробуйте снова.");
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        }
+
+        // Получаем настройки пользователя
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+
+        // Проверяем достаточно ли средств с учётом настроек качества
+        double cost = config.calculateCost();
+        if (!balanceService.canAffordGeneration(user.getId(), cost)) {
+            telegramService.sendMessage(chatId,
+                    "❌ Недостаточно средств!\n\n" +
+                            "💰 Требуется: $" + String.format("%.2f", cost) + "\n" +
+                            "🛒 Пополните баланс"
+            );
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        }
+
+        // Списываем баланс
+        boolean used = balanceService.useImageGeneration(user.getId(), cost);
+        if (!used) {
+            telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        }
+
+        // Меняем состояние и уведомляем
+        stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
+
+        telegramService.sendMessage(chatId,
+                "🎨 Редактирую изображение...\n\n" +
+                        "📝 Описание изменений: _" + prompt + "_\n" +
+                        "⚙️ Настройки: " + config.getDescription() + "\n" +
+                        "⏱️ Это займет ~20 секунд"
+        );
+
+        // Запускаем асинхронное редактирование
+        startAsyncImageEdit(chatId, user.getId(), sourceImage, prompt, config);
+    }
+
+    /* НОВЫЙ МЕТОД: Команда настроек*/
+    private void handleSettingsCommand(Long chatId) {
+        if (!isUserAuthorized(chatId)) {
+            telegramService.sendMessage(chatId, "❌ Пожалуйста, авторизуйтесь: /login");
+            return;
+        }
+
+        // Получаем текущие настройки
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+
+        // Отправляем меню настроек
+        telegramService.sendMessage(chatId,
+                "⚙️ *Настройки генерации*\n\n" +
+                        "Текущие настройки:\n" +
+                        "• Соотношение сторон: " + config.getAspectRatio() + "\n" +
+                        "• Разрешение: " + config.getResolution() + "\n" +
+                        "• Стоимость: $" + String.format("%.2f", config.calculateCost()) + "\n\n" +
+                        "Выберите параметр для изменения:"
+        );
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setParseMode("Markdown");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        // Кнопки для изменения соотношения сторон
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("📐 1:1 (Квадрат)"));
+        row1.add(new KeyboardButton("📐 16:9 (Широкий)"));
+
+        // Кнопки для изменения разрешения
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("🖼️ 1K (Базовое)"));
+        row2.add(new KeyboardButton("🖼️ 2K (Качественное)"));
+        row2.add(new KeyboardButton("🖼️ 4K (Максимальное)"));
+
+        // Кнопка назад
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("🔙 Назад"));
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        telegramService.sendMessage(message);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_QUALITY_SETTINGS);
+    }
+
+    /* НОВЫЙ МЕТОД: Обработка выбора настроек качества*/
+    private void handleQualitySettingsInput(Long chatId, String text) {
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        boolean settingsChanged = false;
+
+        switch (text) {
+            case "📐 1:1 (Квадрат)":
+                config.setAspectRatio("1:1");
+                settingsChanged = true;
+                break;
+            case "📐 16:9 (Широкий)":
+                config.setAspectRatio("16:9");
+                settingsChanged = true;
+                break;
+            case "🖼️ 1K (Базовое)":
+                config.setResolution("1K");
+                settingsChanged = true;
+                break;
+            case "🖼️ 2K (Качественное)":
+                config.setResolution("2K");
+                settingsChanged = true;
+                break;
+            case "🖼️ 4K (Максимальное)":
+                config.setResolution("4K");
+                settingsChanged = true;
+                break;
+            case "🔙 Назад":
+                sendMainMenu(chatId);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                return;
+        }
+
+        if (settingsChanged) {
+            stateManager.saveConfig(chatId, config);
+            telegramService.sendMessage(chatId,
+                    "✅ Настройки обновлены!\n\n" +
+                            "Новые параметры:\n" +
+                            "• Соотношение сторон: " + config.getAspectRatio() + "\n" +
+                            "• Разрешение: " + config.getResolution() + "\n" +
+                            "• Стоимость: $" + String.format("%.2f", config.calculateCost())
+            );
+
+            // Снова показываем меню настроек
+            handleSettingsCommand(chatId);
         }
     }
 
@@ -333,7 +548,8 @@ public class MessageHandlerImpl implements MessageHandler {
         }
 
         /* Проверяем команды*/
-        if ("🎨 Сгенерировать изображение".equals(text)) {
+
+         /* if ("🎨 Сгенерировать изображение".equals(text)) {
             int balance = balanceService.getImageBalance(user.getId());
             if (balance > 0) {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
@@ -350,69 +566,89 @@ public class MessageHandlerImpl implements MessageHandler {
                 );
             }
 
-        } else if ("🎥 Сгенерировать видео".equals(text)) {
-            int balance = balanceService.getVideoBalance(user.getId());
-            if (balance > 0) {
-                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_VIDEO_PROMPT);
-                telegramService.sendMessage(chatId,
-                        "🎥 *Введите описание для видео:*\n\n" +
-                                "Осталось видео: " + balance + "\n" +
-                                "Пример: 'Левитирующий остров с водопадом'"
-                );
-            } else {
-                telegramService.sendMessage(chatId,
-                        "❌ Недостаточно генераций видео!\n\n" +
-                                "🎥 Баланс: 0 видео\n" +
-                                "🛒 Купите пакет видео в магазине"
-                );
+        }*/
+
+        if ("🎨 Сгенерировать изображение".equals(text)) {
+            handleImageGenerationCommand(chatId, user);
+        } else if ("✏️ Редактировать фото".equals(text)) {
+            handleEditCommand(chatId);
+        } else if ("⚙️ Настройки".equals(text)) {
+            handleSettingsCommand(chatId);
+
+        } else switch (text) {
+            case "🎥 Сгенерировать видео" -> {
+                int balance = balanceService.getVideoBalance(user.getId());
+                if (balance > 0) {
+                    stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_VIDEO_PROMPT);
+                    telegramService.sendMessage(chatId,
+                            "🎥 *Введите описание для видео:*\n\n" +
+                                    "Осталось видео: " + balance + "\n" +
+                                    "Пример: 'Левитирующий остров с водопадом'"
+                    );
+                } else {
+                    telegramService.sendMessage(chatId,
+                            "❌ Недостаточно генераций видео!\n\n" +
+                                    "🎥 Баланс: 0 видео\n" +
+                                    "🛒 Купите пакет видео в магазине"
+                    );
+                }
             }
+            case "🛒 Купить генерации" -> {
+                SendMessage message = new SendMessage();
+                message.setChatId(chatId.toString());
+                message.setText("🛒 *Покупка генераций*\n\nВыберите тип генераций:");
+                message.setParseMode("Markdown");
 
-        } else if ("🛒 Купить генерации".equals(text)) {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText("🛒 *Покупка генераций*\n\nВыберите тип генераций:");
-            message.setParseMode("Markdown");
+                ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+                keyboard.setResizeKeyboard(true);
 
-            ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-            keyboard.setResizeKeyboard(true);
+                List<KeyboardRow> rows = new ArrayList<>();
 
-            List<KeyboardRow> rows = new ArrayList<>();
+                KeyboardRow row1 = new KeyboardRow();
+                row1.add(new KeyboardButton("🎨 Изображения"));
+                row1.add(new KeyboardButton("🎥 Видео"));
 
-            KeyboardRow row1 = new KeyboardRow();
-            row1.add(new KeyboardButton("🎨 Изображения"));
-            row1.add(new KeyboardButton("🎥 Видео"));
+                KeyboardRow row2 = new KeyboardRow();
+                row2.add(new KeyboardButton("🔙 Назад"));
 
-            KeyboardRow row2 = new KeyboardRow();
-            row2.add(new KeyboardButton("🔙 Назад"));
+                rows.add(row1);
+                rows.add(row2);
+                keyboard.setKeyboard(rows);
+                message.setReplyMarkup(keyboard);
 
-            rows.add(row1);
-            rows.add(row2);
-            keyboard.setKeyboard(rows);
-            message.setReplyMarkup(keyboard);
+                telegramService.sendMessage(message);
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_PACKAGE_TYPE);
+            }
+            case "📊 Мой баланс" -> telegramService.sendMessage(menuFactory.createStatsMenu(chatId));
+            case "🔙 Назад", "🏠 Главное меню" -> sendMainMenu(chatId);
+            case "📋 Информация" -> sendInfoMenu(chatId);
+            case "📞 Контакты" -> sendContactsMenu(chatId);
+            case "❌ Выйти" -> authService.handleLogout(chatId);
+            default -> telegramService.sendMessage(chatId, "Неизвестная команда");
+        }
+    }
 
-            telegramService.sendMessage(message);
-            stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_PACKAGE_TYPE);
+    /* НОВЫЙ МЕТОД: Обработка команды генерации с учетом настроек*/
+    private void handleImageGenerationCommand(Long chatId, User user) {
+        int balance = balanceService.getImageBalance(user.getId());
+        if (balance > 0) {
+            // Получаем настройки пользователя
+            ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        } else if ("📊 Мой баланс".equals(text)) {
-            telegramService.sendMessage(menuFactory.createStatsMenu(chatId));
+            telegramService.sendMessage(chatId,
+                    "🎨 *Введите описание для изображения:*\n\n" +
+                            "Осталось генераций: " + balance + "\n" +
+                            "⚙️ Текущие настройки: " + config.getDescription() + "\n\n" +
+                            "Пример: 'Космонавт верхом на лошади в стиле Пикассо'"
+            );
 
-        } else if ("🔙 Назад".equals(text)) {
-            sendMainMenu(chatId);
-
-        } else if ("🏠 Главное меню".equals(text)) {
-            sendMainMenu(chatId);
-
-        } else if ("📋 Информация".equals(text)) {
-            sendInfoMenu(chatId);
-
-        } else if ("📞 Контакты".equals(text)) {
-            sendContactsMenu(chatId);
-
-        } else if ("❌ Выйти".equals(text)) {
-            authService.handleLogout(chatId);
-
+            stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
         } else {
-            telegramService.sendMessage(chatId, "Неизвестная команда");
+            telegramService.sendMessage(chatId,
+                    "❌ Недостаточно генераций!\n\n" +
+                            "🎨 Баланс: 0 изображений\n" +
+                            "🛒 Купите пакет генераций в магазине"
+            );
         }
     }
 
@@ -425,7 +661,56 @@ public class MessageHandlerImpl implements MessageHandler {
                 text.equals("🏠 Главное меню") ||
                 text.equals("📋 Информация") ||
                 text.equals("📞 Контакты") ||
+                text.equals( "✏️ Редактировать изображение") || // НОВОЕ
+                text.equals("⚙️ Настройки") ||                 // НОВОЕ
                 text.equals("❌ Выйти");
+    }
+
+    /* НОВЫЙ МЕТОД: Асинхронное редактирование изображения*/
+    @Async
+    public void startAsyncImageEdit(Long chatId, Long userId, byte[] sourceImage,
+                                    String prompt, ImageConfig config) {
+        try {
+            log.info("Начало редактирования через CometAPI для chatId: {}", chatId);
+
+            // Вызов API для редактирования
+            byte[] imageBytes = cometApiService.editImage(sourceImage, prompt, config);
+            int newBalance = balanceService.getImageBalance(userId);
+
+            // Отправляем результат
+            telegramService.sendPhoto(chatId, imageBytes, "edited_image.jpg");
+
+            telegramService.sendMessage(chatId,
+                    "✅ Изображение отредактировано!\n\n" +
+                            "📝 Описание изменений: _" + prompt + "_\n" +
+                            "⚙️ Настройки: " + config.getDescription() + "\n" +
+                            "🎨 Осталось генераций: " + newBalance
+            );
+
+            log.info("Редактирование успешно для chatId: {}", chatId);
+
+        } catch (Exception e) {
+            log.error("Ошибка редактирования для chatId: {}", chatId, e);
+
+            // Возвращаем баланс при ошибке
+            try {
+                double cost = config.calculateCost();
+                balanceService.refundGeneration(userId, cost);
+                log.info("Баланс возвращен для userId: {}", userId);
+            } catch (Exception ex) {
+                log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
+            }
+
+            telegramService.sendMessage(chatId,
+                    "❌ Произошла ошибка при редактировании\n\n" +
+                            "🎨 Баланс возвращен\n" +
+                            "⚠️ Попробуйте позже или измените запрос"
+            );
+        } finally {
+            // Очищаем временное изображение
+            stateManager.clearUserData(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+        }
     }
 
     private void handleCheckPaymentCommand(Long chatId) {

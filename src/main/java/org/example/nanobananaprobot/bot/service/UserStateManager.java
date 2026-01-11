@@ -1,5 +1,6 @@
 package org.example.nanobananaprobot.bot.service;
 
+import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -12,6 +13,10 @@ public class UserStateManager {
     private final Map<Long, String> tempUsernames = new ConcurrentHashMap<>();
     private final Map<Long, String> tempEmails = new ConcurrentHashMap<>();
     private final Map<Long, String> tempPrompts = new ConcurrentHashMap<>(); /* ДЛЯ ХРАНЕНИЯ ПРОМПТОВ*/
+
+    // Хранилище для временных данных
+    private final Map<Long, ImageConfig> userConfigs = new ConcurrentHashMap<>();
+    private final Map<Long, byte[]> userUploadedImages = new ConcurrentHashMap<>();
 
     /* УПРОЩЕННЫЕ СОСТОЯНИЯ*/
     public static final String STATE_NONE = "NONE";
@@ -34,6 +39,11 @@ public class UserStateManager {
     public static final String STATE_WAITING_VIDEO_PACKAGE = "WAITING_VIDEO_PACKAGE";
 
     public static final String STATE_WAITING_TEST_PROMPT = "WAITING_TEST_PROMPT";
+
+    // Новые состояния для загрузки изображений и настроек
+    public static final String STATE_WAITING_IMAGE_UPLOAD = "WAITING_IMAGE_UPLOAD";
+    public static final String STATE_WAITING_EDIT_PROMPT = "WAITING_EDIT_PROMPT";
+    public static final String STATE_WAITING_QUALITY_SETTINGS = "WAITING_QUALITY_SETTINGS";
 
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
@@ -89,6 +99,44 @@ public class UserStateManager {
         tempUsernames.remove(chatId);
         tempEmails.remove(chatId);
         tempPrompts.remove(chatId);
+    }
+
+    /**
+     * Получить или создать конфигурацию для пользователя
+     */
+    public ImageConfig getOrCreateConfig(Long chatId) {
+        return userConfigs.computeIfAbsent(chatId, k -> new ImageConfig());
+    }
+
+    /**
+     * Сохранить конфигурацию пользователя
+     */
+    public void saveConfig(Long chatId, ImageConfig config) {
+        userConfigs.put(chatId, config);
+    }
+
+    /**
+     * Сохранить загруженное изображение
+     */
+    public void saveUploadedImage(Long chatId, byte[] imageBytes) {
+        userUploadedImages.put(chatId, imageBytes);
+    }
+
+    /**
+     * Получить загруженное изображение
+     */
+    public byte[] getUploadedImage(Long chatId) {
+        return userUploadedImages.get(chatId);
+    }
+
+    /**
+     * Очистить временные данные
+     */
+    @Override
+    public void clearUserData(Long chatId) {
+        super.clearUserData(chatId);
+        userConfigs.remove(chatId);
+        userUploadedImages.remove(chatId);
     }
 
 }
