@@ -90,41 +90,40 @@ public class MenuFactoryImpl implements MenuFactory {
         }
         message.setParseMode("Markdown");
 
-        if (!afterGeneration) {
-            message.setText("🏠 *Главное меню*\n\n" + status + "Выберите действие:");
-        } else {
-            message.setText("✅ *Генерация завершена!*\n\n" + status + "Выберите следующее действие:");
-        }
-        message.setParseMode("Markdown");
-
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         keyboard.setResizeKeyboard(true);
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        /* Генерация*/
+        /* ПЕРВАЯ СТРОЧКА: Основная генерация */
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
-        row1.add(new KeyboardButton("🎥 Сгенерировать видео"));
+        row1.add(new KeyboardButton("✏️ Редактировать фото"));  // НОВАЯ КНОПКА
 
-        /* Покупка пакетов*/
+        /* ВТОРАЯ СТРОЧКА: Дополнительные функции */
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("🛒 Купить генерации"));
-        row2.add(new KeyboardButton("📊 Мой баланс"));
+        row2.add(new KeyboardButton("⚙️ Настройки"));           // НОВАЯ КНОПКА
+        row2.add(new KeyboardButton("🎥 Сгенерировать видео"));
 
-        /* Инфо*/
+        /* ТРЕТЬЯ СТРОЧКА: Покупки и баланс */
         KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("📋 Информация"));
-        row3.add(new KeyboardButton("📞 Контакты"));
+        row3.add(new KeyboardButton("🛒 Купить генерации"));
+        row3.add(new KeyboardButton("📊 Мой баланс"));
 
-        /* Выход*/
+        /* ЧЕТВЕРТАЯ СТРОЧКА: Информация */
         KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("❌ Выйти"));
+        row4.add(new KeyboardButton("📋 Информация"));
+        row4.add(new KeyboardButton("📞 Контакты"));
+
+        /* ПЯТАЯ СТРОЧКА: Выход */
+        KeyboardRow row5 = new KeyboardRow();
+        row5.add(new KeyboardButton("❌ Выйти"));
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
+        rows.add(row5);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);

@@ -2,6 +2,7 @@ package org.example.nanobananaprobot.bot.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.*;
 import org.springframework.scheduling.annotation.Async;
@@ -117,19 +118,23 @@ public class GenerationService {
         try {
             log.info("Начало генерации через CometAPI для chatId: {}, prompt: {}", chatId, prompt);
 
-            // 1. Вызов нового API Comet (Nano Banana Pro)
-            byte[] imageBytes = cometApiService.generateImage(prompt);
+            // 1. Получаем настройки пользователя
+            ImageConfig config = stateManager.getOrCreateConfig(chatId); // Добавьте эту строку
 
-            // 2. Получаем актуальный баланс после успешной генерации
+            // 2. Вызов нового API Comet (Nano Banana Pro) с настройками
+            byte[] imageBytes = cometApiService.generateImage(prompt, config); // Добавьте config
+
+            // 3. Получаем актуальный баланс после успешной генерации
             int newBalance = balanceService.getImageBalance(userId);
 
-            // 3. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)
+            // 4. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)
             telegramService.sendPhoto(chatId, imageBytes, "generated_image.jpg");
 
-            // 4. Отправляем текстовое подтверждение
+            // 5. Отправляем текстовое подтверждение с информацией о настройках
             telegramService.sendMessage(chatId,
                     "✅ Изображение готово!\n\n" +
                             "📝 Промпт: _" + prompt + "_\n" +
+                            "⚙️ Настройки: " + config.getDescription() + "\n" + // Добавлено
                             "🎨 Осталось генераций: " + newBalance
             );
 
@@ -139,7 +144,7 @@ public class GenerationService {
         } catch (Exception e) {
             log.error("Ошибка генерации через CometAPI для chatId: {}", chatId, e);
 
-            // 5. Возвращаем баланс при ошибке
+            // 6. Возвращаем баланс при ошибке
             try {
                 balanceService.addImageGenerations(userId, 1);
                 log.info("Баланс возвращен для userId: {} после ошибки CometAPI", userId);
@@ -147,14 +152,14 @@ public class GenerationService {
                 log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
             }
 
-            // 6. Уведомляем пользователя об ошибке
+            // 7. Уведомляем пользователя об ошибке
             String errorMessage = "❌ Произошла ошибка при генерации изображения\n\n" +
                     "🎨 Баланс возвращен\n" +
                     "⚠️ " + getErrorMessage(e);
 
             telegramService.sendMessage(chatId, errorMessage);
         } finally {
-            // 7. Возвращаем пользователя в главное меню
+            // 8. Возвращаем пользователя в главное меню
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
     }

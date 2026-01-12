@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
 import org.example.nanobananaprobot.bot.service.*;
 import org.example.nanobananaprobot.domain.model.User;
+import org.example.nanobananaprobot.service.CometApiService;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.scheduling.annotation.Async;
@@ -37,43 +38,54 @@ public class MessageHandlerImpl implements MessageHandler {
     private final TelegramService telegramService;
     private final MenuFactory menuFactory;
 
+    private final CometApiService cometApiService;
+
     @Override
     public void handleTextMessage(Message message) {
         Long chatId = message.getChatId();
         String text = message.getText();
         String userState = stateManager.getUserState(chatId);
 
+        // ДОБАВИТЬ ДЛЯ ОТЛАДКИ:
+        if (text == null) {
+            log.warn("Received null text for chatId: {}, state: {}", chatId, userState);
+            return; // Не обрабатываем сообщения без текста
+        }
+
         log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
         try {
 
             /* ДОБАВЛЯЕМ НОВЫЕ ГЛОБАЛЬНЫЕ КОМАНДЫ*/
-            if (text.equals("/settings") || text.equals("⚙️ Настройки")) {
-                handleSettingsCommand(chatId);
-                return;
-            }
-
-            if (text.equals("/edit") || text.equals("✏️ Редактировать изображение")) {
-                handleEditCommand(chatId);
-                return;
-            }
-
-            /* ГЛОБАЛЬНЫЕ КОМАНДЫ*/
-            if (text.equals("/start") || text.equals("🏠 Старт")) {
-                handleStartCommand(chatId);
-                return;
-            }
-
-            /* ГЛОБАЛЬНЫЕ КНОПКИ МЕНЮ*/
-            if (text.equals("🔙 Назад") || text.equals("🏠 Главное меню")) {
-                if (isUserAuthorized(chatId)) {
-                    sendMainMenu(chatId);
-                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-                } else {
-                    sendWelcomeMenu(chatId);
-                    stateManager.setUserState(chatId, UserStateManager.STATE_NONE);
+            switch (text) {
+                case "/settings", "⚙️ Настройки" -> {
+                    handleSettingsCommand(chatId);
+                    return;
                 }
-                return;
+                case "/edit", "✏️ Редактировать изображение" -> {
+                    handleEditCommand(chatId);
+                    return;
+                }
+
+
+                /* ГЛОБАЛЬНЫЕ КОМАНДЫ*/
+                case "/start", "🏠 Старт" -> {
+                    handleStartCommand(chatId);
+                    return;
+                }
+
+
+                /* ГЛОБАЛЬНЫЕ КНОПКИ МЕНЮ*/
+                case "🔙 Назад", "🏠 Главное меню" -> {
+                    if (isUserAuthorized(chatId)) {
+                        sendMainMenu(chatId);
+                        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                    } else {
+                        sendWelcomeMenu(chatId);
+                        stateManager.setUserState(chatId, UserStateManager.STATE_NONE);
+                    }
+                    return;
+                }
             }
 
             /* Обработка состояний ввода*/

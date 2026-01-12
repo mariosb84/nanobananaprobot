@@ -29,9 +29,6 @@ public class CometApiService {
         this.objectMapper = new ObjectMapper();
     }
 
-    /**
-     * Генерация изображения с настройками
-     */
     public byte[] generateImage(String prompt, ImageConfig config) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -46,9 +43,6 @@ public class CometApiService {
         return parseResponse(response.getBody());
     }
 
-    /**
-     * Редактирование изображения (image-to-image)
-     */
     public byte[] editImage(byte[] sourceImage, String prompt, ImageConfig config) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -65,6 +59,7 @@ public class CometApiService {
 
     /**
      * Создание тела запроса для генерации
+     * Gemini 3 Pro поддерживает только aspectRatio, НЕ resolution
      */
     private Map<String, Object> createRequestBody(String prompt, ImageConfig config) {
         Map<String, Object> requestBody = new HashMap<>();
@@ -78,10 +73,14 @@ public class CometApiService {
 
         // Конфигурация генерации
         Map<String, Object> generationConfig = new HashMap<>();
-        Map<String, String> imageConfig = new HashMap<>();
+        Map<String, Object> imageConfig = new HashMap<>();
 
+        // Gemini API ПОДДЕРЖИВАЕТ ТОЛЬКО aspectRatio
+        // Возможные значения для Gemini: "1:1", "16:9", "3:4", "4:3"
         imageConfig.put("aspectRatio", config.getAspectRatio());
-        imageConfig.put("resolution", config.getResolution());
+
+        // ⚠️ УБИРАЕМ resolution - Gemini его не поддерживает!
+        // imageConfig.put("resolution", config.getResolution()); // УДАЛИТЬ ЭТУ СТРОКУ
 
         generationConfig.put("imageConfig", imageConfig);
         requestBody.put("generationConfig", generationConfig);
@@ -115,12 +114,12 @@ public class CometApiService {
         Map<String, Object> contents = Map.of("contents", List.of(Map.of("parts", parts)));
         requestBody.putAll(contents);
 
-        // Конфигурация генерации
+        // Конфигурация генерации (только aspectRatio)
         Map<String, Object> generationConfig = new HashMap<>();
-        Map<String, String> imageConfig = new HashMap<>();
+        Map<String, Object> imageConfig = new HashMap<>();
 
         imageConfig.put("aspectRatio", config.getAspectRatio());
-        imageConfig.put("resolution", config.getResolution());
+        // ⚠️ НЕ добавляем resolution!
 
         generationConfig.put("imageConfig", imageConfig);
         requestBody.put("generationConfig", generationConfig);
@@ -155,6 +154,19 @@ public class CometApiService {
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Ошибка декодирования Base64 строки", e);
         }
+    }
+
+    // Добавьте этот метод если нужно конвертировать ваши настройки в формат Gemini
+    private String convertAspectRatio(String userAspectRatio) {
+        if (userAspectRatio == null) return "1:1";
+
+        // Поддерживаемые Gemini значения: "1:1", "16:9", "3:4", "4:3"
+        return switch (userAspectRatio) {
+            case "16:9" -> "16:9";
+            case "3:4" -> "3:4";
+            case "4:3" -> "4:3";
+            default -> "1:1";
+        };
     }
 
 }

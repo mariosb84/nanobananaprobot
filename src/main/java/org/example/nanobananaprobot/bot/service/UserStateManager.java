@@ -94,12 +94,12 @@ public class UserStateManager {
         tempPrompts.remove(chatId);
     }
 
-    public void clearUserData(Long chatId) {
+   /* public void clearUserData(Long chatId) {
         userStates.remove(chatId);
         tempUsernames.remove(chatId);
         tempEmails.remove(chatId);
         tempPrompts.remove(chatId);
-    }
+    }*/
 
     /**
      * Получить или создать конфигурацию для пользователя
@@ -130,11 +130,15 @@ public class UserStateManager {
     }
 
     /**
-     * Очистить временные данные
+     * Очистить ВСЕ данные пользователя
+     * УДАЛИТЬ аннотацию @Override и вызов super.clearUserData()
      */
-    @Override
     public void clearUserData(Long chatId) {
-        super.clearUserData(chatId);
+        // Очищаем ВСЕ данные
+        userStates.remove(chatId);
+        tempUsernames.remove(chatId);
+        tempEmails.remove(chatId);
+        tempPrompts.remove(chatId);
         userConfigs.remove(chatId);
         userUploadedImages.remove(chatId);
     }
