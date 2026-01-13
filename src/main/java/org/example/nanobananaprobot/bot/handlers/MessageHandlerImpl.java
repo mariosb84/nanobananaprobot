@@ -98,11 +98,19 @@ public class MessageHandlerImpl implements MessageHandler {
 
         } catch (Exception e) {
             log.error("Error handling message: {}", e.getMessage());
+            log.error("Error handling message:", e); // <-- ВАЖНО: передать сам объект 'e'
             telegramService.sendMessage(chatId, "❌ Произошла ошибка. Попробуйте еще раз.");
         }
     }
 
     private boolean handleInputStates(Long chatId, String text, String userState) {
+
+        // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ
+        if (text == null) {
+            log.error("handleInputStates received NULL text! ChatId: {}, State: {}", chatId, userState);
+            return true; // Или false, в зависимости от логики
+        }
+
         /* БЛОКИРОВКА КНОПОК ВО ВРЕМЯ ВВОДА*/
         if (userState.equals(UserStateManager.STATE_WAITING_IMAGE_PROMPT) ||
                 userState.equals(UserStateManager.STATE_WAITING_VIDEO_PROMPT) ||
@@ -123,7 +131,9 @@ public class MessageHandlerImpl implements MessageHandler {
             }
         }
 
-        if (text.equals("❌ Выйти")) {
+        //if (text.equals("❌ Выйти")) {
+
+        if ("❌ Выйти".equals(text)) {
             authService.handleLogout(chatId);
             return true;
         }
@@ -311,6 +321,7 @@ public class MessageHandlerImpl implements MessageHandler {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         message.setParseMode("Markdown");
+        message.setText("Выберите параметр:"); // <-- ВАЖНО: УСТАНОВИТЕ ТЕКСТ
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         keyboard.setResizeKeyboard(true);
@@ -344,6 +355,14 @@ public class MessageHandlerImpl implements MessageHandler {
 
     /* НОВЫЙ МЕТОД: Обработка выбора настроек качества*/
     private void handleQualitySettingsInput(Long chatId, String text) {
+
+        // ДОБАВЬТЕ ПРОВЕРКУ
+        if (text == null) {
+            log.error("handleQualitySettingsInput: text is null for chatId: {}", chatId);
+            telegramService.sendMessage(chatId, "❌ Некорректный ввод");
+            return;
+        }
+
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
         boolean settingsChanged = false;
 
@@ -503,7 +522,10 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void handleCommand(Long chatId, String text) {
-        if (text.equals("/start") || text.equals("🏠 Старт")) {
+
+        //if (text.equals("/start") || text.equals("🏠 Старт")) {
+
+        if ("/start".equals(text) || "🏠 Старт".equals(text)) {
             handleStartCommand(chatId);
             return;
         }
@@ -665,6 +687,10 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private boolean isMenuCommand(String text) {
+
+        // УБЕДИТЕСЬ, ЧТО text НЕ null
+        if (text == null) return false;
+
         return text.equals("🎨 Сгенерировать изображение") ||
                 text.equals("🎥 Сгенерировать видео") ||
                 text.equals("🛒 Купить генерации") ||
