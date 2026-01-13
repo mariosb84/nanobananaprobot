@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.handlers.CallbackHandler;
 import org.example.nanobananaprobot.bot.handlers.MessageHandler;
+import org.example.nanobananaprobot.bot.handlers.MessageHandlerImpl;
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.bot.service.UserStateManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -55,17 +57,15 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
             } else if (update.hasMessage()) {
                 Message message = update.getMessage();
 
-                // Сначала проверяем фото (это сообщение без текста)
-                if (message.hasPhoto()) {
+                // ОБНОВИЛИ УСЛОВИЕ: проверяем И фото, И документ
+                if (message.hasPhoto() || (message.hasDocument() && isImageDocument(message.getDocument()))) {
                     handlePhotoUpload(message);
                 }
-                // Только потом проверяем текст
-                else if (message.hasText()) {
+                else if (message.hasText() && message.getText() != null) {
                     messageHandler.handleTextMessage(message);
                 }
-                // Если есть сообщение, но нет ни текста ни фото
                 else {
-                    log.warn("Received message without text or photo: {}", message);
+                    log.debug("Received unsupported message type, chatId: {}", message.getChatId());
                 }
             }
         } catch (Exception e) {
@@ -74,11 +74,24 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         }
     }
 
+    // Вспомогательный метод для проверки, что документ - это изображение
+    private boolean isImageDocument(Document doc) {
+        if (doc == null || doc.getMimeType() == null) return false;
+        String mime = doc.getMimeType();
+        return mime.startsWith("image/"); // image/jpeg, image/png и т.д.
+    }
+
     /**
      * Обработка загрузки фото
      */
     private void handlePhotoUpload(Message message) {
         Long chatId = message.getChatId();
+
+        // ДОБАВЬТЕ ПРОВЕРКУ АВТОРИЗАЦИИ:
+        if (!messageHandler.isUserAuthorized(chatId)) {
+            telegramService.sendMessage(chatId, "❌ Пожалуйста, авторизуйтесь: /login");
+            return;
+        }
 
         // Используем напрямую внедренный userStateManager
         String userState = userStateManager.getUserState(chatId);
@@ -104,7 +117,7 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
             // Получаем объект файла от Telegram API
             org.telegram.telegrambots.meta.api.objects.File file = execute(
-                    new org.telegram.telegrambots.meta.api.methods.GetFile()
+                    new org.telegram.telegrambots.meta.api.methods.GetFile(fileId)
             );
 
             // Получаем путь к файлу

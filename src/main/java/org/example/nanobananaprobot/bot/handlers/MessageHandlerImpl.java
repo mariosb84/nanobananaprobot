@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
-import java.util.Comparator;
 
 @Slf4j
 @Service
@@ -42,19 +40,21 @@ public class MessageHandlerImpl implements MessageHandler {
 
     @Override
     public void handleTextMessage(Message message) {
-        Long chatId = message.getChatId();
-        String text = message.getText();
-        String userState = stateManager.getUserState(chatId);
 
-        // ДОБАВИТЬ ДЛЯ ОТЛАДКИ:
-        if (text == null) {
-            log.warn("Received null text for chatId: {}, state: {}", chatId, userState);
-            return; // Не обрабатываем сообщения без текста
+        // 1. ПЕРЕНЕСИТЕ ЭТУ ПРОВЕРКУ В САМОЕ НАЧАЛО МЕТОДА
+        if (message == null || message.getText() == null) {
+            log.debug("Ignoring non-text message from chatId: {}",
+                    message != null ? message.getChatId() : "N/A");
+            return;
         }
 
-        log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
+        Long chatId = message.getChatId();
+        String text = message.getText();
 
+        // 🔴 ПЕРЕМЕСТИТЕ try-catch БЛОК СЮДА - сразу после получения chatId и text
         try {
+            String userState = stateManager.getUserState(chatId);
+            log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
             /* ДОБАВЛЯЕМ НОВЫЕ ГЛОБАЛЬНЫЕ КОМАНДЫ*/
             switch (text) {
@@ -229,7 +229,7 @@ public class MessageHandlerImpl implements MessageHandler {
         // Устанавливаем состояние ожидания загрузки фото
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_UPLOAD);
         telegramService.sendMessage(chatId,
-                "📸 *Загрузите фото для редактирования:*\n\n" +
+                "📸 *Загрузите изображение для редактирования:*\n\n" +
                         "Отправьте изображение, которое хотите изменить.\n" +
                         "После загрузки введите текстовое описание изменений."
         );
@@ -582,7 +582,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
         if ("🎨 Сгенерировать изображение".equals(text)) {
             handleImageGenerationCommand(chatId, user);
-        } else if ("✏️ Редактировать фото".equals(text)) {
+        } else if ("✏️ Редактировать изображение".equals(text)) {
             handleEditCommand(chatId);
         } else if ("⚙️ Настройки".equals(text)) {
             handleSettingsCommand(chatId);
@@ -730,7 +730,8 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(chatId, "Введите ID платежа из ЮKassa:");
     }
 
-    private boolean isUserAuthorized(Long chatId) {
+    @Override
+    public boolean isUserAuthorized(Long chatId) {
         String state = stateManager.getUserState(chatId);
         User user = userService.findByTelegramChatId(chatId);
 
@@ -742,7 +743,12 @@ public class MessageHandlerImpl implements MessageHandler {
                 UserStateManager.STATE_WAITING_VIDEO_PACKAGE.equals(state) ||
                 UserStateManager.STATE_REGISTER_EMAIL.equals(state) ||
                 UserStateManager.STATE_REGISTER_USERNAME.equals(state) ||
-                UserStateManager.STATE_REGISTER_PASSWORD.equals(state)
+                UserStateManager.STATE_REGISTER_PASSWORD.equals(state) ||
+                // ДОБАВЬТЕ ВСЕ НОВЫЕ СОСТОЯНИЯ:
+                UserStateManager.STATE_WAITING_IMAGE_UPLOAD.equals(state) ||      // Для загрузки фото
+                UserStateManager.STATE_WAITING_EDIT_PROMPT.equals(state) ||       // Для ввода промпта редактирования
+                UserStateManager.STATE_WAITING_QUALITY_SETTINGS.equals(state) ||  // Для настроек качества
+                UserStateManager.STATE_GENERATION_IN_PROGRESS.equals(state)       // Для генерации
         ) && user != null;
     }
 

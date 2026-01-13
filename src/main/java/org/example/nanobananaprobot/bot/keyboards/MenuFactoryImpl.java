@@ -98,7 +98,7 @@ public class MenuFactoryImpl implements MenuFactory {
         /* ПЕРВАЯ СТРОЧКА: Основная генерация */
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
-        row1.add(new KeyboardButton("✏️ Редактировать фото"));  // НОВАЯ КНОПКА
+        row1.add(new KeyboardButton("✏️ Редактировать изображение"));  // НОВАЯ КНОПКА
 
         /* ВТОРАЯ СТРОЧКА: Дополнительные функции */
         KeyboardRow row2 = new KeyboardRow();

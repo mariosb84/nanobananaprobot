@@ -7,5 +7,6 @@ public interface MessageHandler {
     void handleTextMessage(Message message);
     void handleError(Update update, Exception exception);
     void shutdown();
+    boolean isUserAuthorized(Long chatId);
 }
 
