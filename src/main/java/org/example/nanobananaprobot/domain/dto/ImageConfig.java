@@ -4,32 +4,34 @@ import lombok.Data;
 
 @Data
 public class ImageConfig {
+    private String aspectRatio = "1:1";
+    private String resolution = "1K"; // "1K", "2K", "4K" - теперь передается в API как imageSize
 
-    private String aspectRatio = "1:1";  // Соотношение сторон
-
-    // Убираем или оставляем только для интерфейса, но не для API
-    private String resolution = "1K";    // Только для отображения пользователю
-
-    // Режим работы
     private String mode = "generate";
     private byte[] sourceImage;
 
-    // Константы для расчёта стоимости (теперь только на основе mode)
-    private static final double BASE_COST_GENERATE = 0.11;
-    private static final double BASE_COST_EDIT = 0.15; // Редактирование дороже
+    // Базовая стоимость для 1K
+    private static final double COST_GENERATE_1K = 0.11;
+    private static final double COST_EDIT_1K = 0.15;
 
-    /**
-     * Рассчитывает стоимость на основе типа операции
-     */
+    // Множители для разных разрешений
+    private static final double MULTIPLIER_2K = 1.5;
+    private static final double MULTIPLIER_4K = 2.2;
+
     public double calculateCost() {
-        return "edit".equals(mode) ? BASE_COST_EDIT : BASE_COST_GENERATE;
+        double base = "edit".equals(mode) ? COST_EDIT_1K : COST_GENERATE_1K;
+
+        // Расчёт стоимости на основе разрешения
+        if ("2K".equals(resolution)) {
+            return base * MULTIPLIER_2K;
+        } else if ("4K".equals(resolution)) {
+            return base * MULTIPLIER_4K;
+        }
+
+        return base; // 1K
     }
 
-    /**
-     * Возвращает описание настроек
-     */
     public String getDescription() {
-        return String.format("%s | %.2f$", aspectRatio, calculateCost());
+        return String.format("%s | %s | %.2f$", aspectRatio, resolution, calculateCost());
     }
-
 }

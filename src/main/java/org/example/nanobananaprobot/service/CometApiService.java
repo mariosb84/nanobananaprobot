@@ -1,15 +1,17 @@
 package org.example.nanobananaprobot.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.nanobananaprobot.domain.dto.CometApiResponse;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -24,8 +26,14 @@ public class CometApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    // Добавьте логгер в начало класса
+    private static final Logger log = LoggerFactory.getLogger(CometApiService.class);
+
     public CometApiService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+                .connectTimeout(Duration.ofSeconds(30))
+                .readTimeout(Duration.ofMinutes(5))
+                .build();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -37,8 +45,26 @@ public class CometApiService {
         // Формируем запрос с учетом ImageConfig
         Map<String, Object> requestBody = createRequestBody(prompt, config);
 
+        // ★ ДОБАВЬ ЛОГИРОВАНИЕ ЗАПРОСА
+        try {
+            String requestJson = objectMapper.writeValueAsString(requestBody);
+            log.info("=== API REQUEST ===");
+            log.info("URL: {}", API_URL);
+            log.info("Headers: {}", headers);
+            log.info("Body: {}", requestJson);
+            log.info("===================");
+        } catch (Exception e) {
+            log.error("Failed to log request", e);
+        }
+
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(API_URL, request, String.class);
+
+        // ★ ДОБАВЬ ЛОГИРОВАНИЕ ОТВЕТА
+        log.info("=== API RESPONSE ===");
+        log.info("Status: {}", response.getStatusCode());
+        log.info("Body preview: {}", response.getBody().substring(0, Math.min(500, response.getBody().length())));
+        log.info("===================");
 
         return parseResponse(response.getBody());
     }
@@ -59,30 +85,33 @@ public class CometApiService {
 
     /**
      * Создание тела запроса для генерации
-     * Gemini 3 Pro поддерживает только aspectRatio, НЕ resolution
      */
     private Map<String, Object> createRequestBody(String prompt, ImageConfig config) {
         Map<String, Object> requestBody = new HashMap<>();
 
-        // Текстовая часть
-        Map<String, Object> textPart = Map.of("text", prompt);
-        Map<String, Object> parts = Map.of("parts", List.of(textPart));
-        Map<String, Object> contents = Map.of("contents", List.of(parts));
+        List<Map<String, Object>> parts = new ArrayList<>();
+        parts.add(Map.of("text", prompt));
 
-        requestBody.putAll(contents);
+        Map<String, Object> content = new HashMap<>();
+        content.put("parts", parts);
 
-        // Конфигурация генерации
+        requestBody.put("contents", List.of(content));
+
+        // ДЛЯ ПРОСТОЙ ГЕНЕРАЦИИ - добавляем aspectRatio и imageSize (качество)
         Map<String, Object> generationConfig = new HashMap<>();
         Map<String, Object> imageConfig = new HashMap<>();
 
-        // Gemini API ПОДДЕРЖИВАЕТ ТОЛЬКО aspectRatio
-        // Возможные значения для Gemini: "1:1", "16:9", "3:4", "4:3"
-        imageConfig.put("aspectRatio", config.getAspectRatio());
+        // КОНВЕРТИРУЕМ и передаем aspectRatio
+        String geminiAspectRatio = convertAspectRatio(config.getAspectRatio());
+        imageConfig.put("aspectRatio", geminiAspectRatio);
 
-        // ⚠️ УБИРАЕМ resolution - Gemini его не поддерживает!
-        // imageConfig.put("resolution", config.getResolution()); // УДАЛИТЬ ЭТУ СТРОКУ
+        // ★ ВАЖНО: передаем качество (imageSize вместо resolution)
+        // Поддерживаемые значения: "1K", "2K", "4K"
+        imageConfig.put("imageSize", config.getResolution());
 
         generationConfig.put("imageConfig", imageConfig);
+        generationConfig.put("responseModalities", List.of("IMAGE"));
+
         requestBody.put("generationConfig", generationConfig);
 
         return requestBody;
@@ -94,34 +123,40 @@ public class CometApiService {
     private Map<String, Object> createEditRequestBody(byte[] sourceImage, String prompt, ImageConfig config) {
         Map<String, Object> requestBody = new HashMap<>();
 
-        // Кодируем исходное изображение в Base64
         String base64Image = Base64.getEncoder().encodeToString(sourceImage);
 
-        // Создаем массив parts: [изображение, текст]
         List<Map<String, Object>> parts = new ArrayList<>();
 
-        // Часть с изображением
+        // inline_data (snake_case) для совместимости с CometAPI
         parts.add(Map.of(
-                "inlineData", Map.of(
-                        "mimeType", "image/jpeg",
+                "inline_data", Map.of(
+                        "mime_type", "image/jpeg", // snake_case
                         "data", base64Image
                 )
         ));
 
-        // Часть с текстовым промптом
         parts.add(Map.of("text", prompt));
 
-        Map<String, Object> contents = Map.of("contents", List.of(Map.of("parts", parts)));
-        requestBody.putAll(contents);
+        Map<String, Object> content = new HashMap<>();
+        content.put("role", "user");
+        content.put("parts", parts);
 
-        // Конфигурация генерации (только aspectRatio)
+        requestBody.put("contents", List.of(content));
+
+        // ДЛЯ РЕДАКТИРОВАНИЯ тоже передаем aspectRatio и imageSize
         Map<String, Object> generationConfig = new HashMap<>();
         Map<String, Object> imageConfig = new HashMap<>();
 
-        imageConfig.put("aspectRatio", config.getAspectRatio());
-        // ⚠️ НЕ добавляем resolution!
+        // КОНВЕРТИРУЕМ и передаем aspectRatio
+        String geminiAspectRatio = convertAspectRatio(config.getAspectRatio());
+        imageConfig.put("aspectRatio", geminiAspectRatio);
+
+        // ★ ВАЖНО: передаем качество (imageSize вместо resolution)
+        imageConfig.put("imageSize", config.getResolution());
 
         generationConfig.put("imageConfig", imageConfig);
+        generationConfig.put("responseModalities", List.of("IMAGE"));
+
         requestBody.put("generationConfig", generationConfig);
 
         return requestBody;
@@ -136,23 +171,25 @@ public class CometApiService {
             }
 
             var candidate = response.getCandidates().get(0);
-            if (candidate.getContent() == null || candidate.getContent().getParts() == null ||
-                    candidate.getContent().getParts().isEmpty()) {
+            if (candidate.getContent() == null || candidate.getContent().getParts() == null) {
                 throw new RuntimeException("Неверная структура ответа");
             }
 
-            var part = candidate.getContent().getParts().get(0);
-            if (part.getInlineData() == null || part.getInlineData().getData() == null) {
-                throw new RuntimeException("Изображение не найдено в ответе");
+            for (var part : candidate.getContent().getParts()) {
+                // Проверяем оба варианта
+                CometApiResponse.InlineData data = part.getInlineData() != null ?
+                        part.getInlineData() : part.getInline_data();
+
+                if (data != null && data.getData() != null) {
+                    String base64Image = data.getData();
+                    return Base64.getDecoder().decode(base64Image);
+                }
             }
 
-            // Декодируем Base64 строку в байты
-            return Base64.getDecoder().decode(part.getInlineData().getData());
+            throw new RuntimeException("Изображение не найдено в ответе");
 
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка парсинга JSON ответа", e);
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Ошибка декодирования Base64 строки", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка обработки ответа: " + e.getMessage(), e);
         }
     }
 
