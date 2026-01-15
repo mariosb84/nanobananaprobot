@@ -716,7 +716,11 @@ public class MessageHandlerImpl implements MessageHandler {
             int newBalance = balanceService.getImageBalance(userId);
 
             // Отправляем результат
-            telegramService.sendPhoto(chatId, imageBytes, "edited_image.jpg");
+
+            /*telegramService.sendPhoto(chatId, imageBytes, "edited_image.jpg");*/
+
+            // ★ Умная отправка для редактирования тоже
+            telegramService.sendImageSmart(chatId, imageBytes, "edited_image.jpg", config);
 
             telegramService.sendMessage(chatId,
                     "✅ Изображение отредактировано!\n\n" +

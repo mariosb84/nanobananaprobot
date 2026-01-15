@@ -126,7 +126,11 @@ public class GenerationService {
             int newBalance = balanceService.getImageBalance(userId);
 
             // 4. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)
-            telegramService.sendPhoto(chatId, imageBytes, "generated_image.jpg");
+
+            /*telegramService.sendPhoto(chatId, imageBytes, "generated_image.jpg");*/
+
+            // ★ Умная отправка с автовыбором
+            telegramService.sendImageSmart(chatId, imageBytes, "image.jpg", config);
 
             // 5. Отправляем текстовое подтверждение с информацией о настройках
             telegramService.sendMessage(chatId,
