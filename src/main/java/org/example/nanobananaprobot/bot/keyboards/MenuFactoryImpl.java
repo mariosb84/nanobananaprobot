@@ -98,32 +98,38 @@ public class MenuFactoryImpl implements MenuFactory {
         /* ПЕРВАЯ СТРОЧКА: Основная генерация */
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
-        row1.add(new KeyboardButton("✏️ Редактировать изображение"));  // НОВАЯ КНОПКА
+        row1.add(new KeyboardButton("🖼️ Объединить изображения"));  // НОВАЯ КНОПКА
 
         /* ВТОРАЯ СТРОЧКА: Дополнительные функции */
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("⚙️ Настройки"));           // НОВАЯ КНОПКА
+        row2.add(new KeyboardButton("✏️ Редактировать изображение"));  // НОВАЯ КНОПКА
         row2.add(new KeyboardButton("🎥 Сгенерировать видео"));
 
         /* ТРЕТЬЯ СТРОЧКА: Покупки и баланс */
         KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("⚙️ Настройки"));           // НОВАЯ КНОПКА
         row3.add(new KeyboardButton("🛒 Купить генерации"));
-        row3.add(new KeyboardButton("📊 Мой баланс"));
 
         /* ЧЕТВЕРТАЯ СТРОЧКА: Информация */
         KeyboardRow row4 = new KeyboardRow();
+        row4.add(new KeyboardButton("📊 Мой баланс"));
         row4.add(new KeyboardButton("📋 Информация"));
-        row4.add(new KeyboardButton("📞 Контакты"));
 
         /* ПЯТАЯ СТРОЧКА: Выход */
         KeyboardRow row5 = new KeyboardRow();
-        row5.add(new KeyboardButton("❌ Выйти"));
+        row5.add(new KeyboardButton("📞 Контакты"));
+        row5.add(new KeyboardButton("🏠 Главное меню"));
+
+        /* ШЕСТАЯ СТРОЧКА: Выход */
+        KeyboardRow row6 = new KeyboardRow();
+        row6.add(new KeyboardButton("❌ Выйти"));
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
         rows.add(row5);
+        rows.add(row6);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);

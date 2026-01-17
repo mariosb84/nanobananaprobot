@@ -3,6 +3,8 @@ package org.example.nanobananaprobot.bot.service;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +19,10 @@ public class UserStateManager {
     // Хранилище для временных данных
     private final Map<Long, ImageConfig> userConfigs = new ConcurrentHashMap<>();
     private final Map<Long, byte[]> userUploadedImages = new ConcurrentHashMap<>();
+
+    // Хранилище для нескольких изображений
+    private final Map<Long, List<byte[]>> userMultipleImages = new ConcurrentHashMap<>();
+    private final Map<Long, String> mediaGroupIds = new ConcurrentHashMap<>();
 
     /* УПРОЩЕННЫЕ СОСТОЯНИЯ*/
     public static final String STATE_NONE = "NONE";
@@ -44,6 +50,10 @@ public class UserStateManager {
     public static final String STATE_WAITING_IMAGE_UPLOAD = "WAITING_IMAGE_UPLOAD";
     public static final String STATE_WAITING_EDIT_PROMPT = "WAITING_EDIT_PROMPT";
     public static final String STATE_WAITING_QUALITY_SETTINGS = "WAITING_QUALITY_SETTINGS";
+
+    // НОВЫЕ СОСТОЯНИЯ ДЛЯ СЛИЯНИЯ ИЗОБРАЖЕНИЙ
+    public static final String STATE_WAITING_MULTIPLE_IMAGES_UPLOAD = "WAITING_MULTIPLE_IMAGES_UPLOAD";
+    public static final String STATE_WAITING_MERGE_PROMPT = "WAITING_MERGE_PROMPT";
 
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
@@ -141,6 +151,38 @@ public class UserStateManager {
         tempPrompts.remove(chatId);
         userConfigs.remove(chatId);
         userUploadedImages.remove(chatId);
+    }
+
+    /* МЕТОДЫ ДЛЯ РАБОТЫ С НЕСКОЛЬКИМИ ИЗОБРАЖЕНИЯМИ*/
+
+    public void saveMultipleImages(Long chatId, List<byte[]> images) {
+        userMultipleImages.put(chatId, images);
+    }
+
+    public List<byte[]> getMultipleImages(Long chatId) {
+        return userMultipleImages.get(chatId);
+    }
+
+    public void clearMultipleImages(Long chatId) {
+        userMultipleImages.remove(chatId);
+        mediaGroupIds.remove(chatId);
+    }
+
+    public void addImageToCollection(Long chatId, byte[] imageBytes, String mediaGroupId) {
+        List<byte[]> images = userMultipleImages.computeIfAbsent(chatId, k -> new ArrayList<>());
+        images.add(imageBytes);
+        if (mediaGroupId != null) {
+            mediaGroupIds.put(chatId, mediaGroupId);
+        }
+    }
+
+    public boolean hasImagesForMerge(Long chatId) {
+        List<byte[]> images = userMultipleImages.get(chatId);
+        return images != null && images.size() >= 2;
+    }
+
+    public String getMediaGroupId(Long chatId) {
+        return mediaGroupIds.get(chatId);
     }
 
 }

@@ -6,6 +6,8 @@ import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.configurationprocessor.json.JSONArray;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -197,13 +199,117 @@ public class CometApiService {
     private String convertAspectRatio(String userAspectRatio) {
         if (userAspectRatio == null) return "1:1";
 
-        // Поддерживаемые Gemini значения: "1:1", "16:9", "3:4", "4:3"
+        // Поддерживаемые значения Nano Banana Pro (Gemini 3 Pro Image)[citation:4][citation:10]
         return switch (userAspectRatio) {
+            // Квадрат
+            case "1:1" -> "1:1";
+            // Альбомные (ландшафт)
+            case "21:9" -> "21:9";
             case "16:9" -> "16:9";
-            case "3:4" -> "3:4";
             case "4:3" -> "4:3";
+            case "3:2" -> "3:2";
+            case "5:4" -> "5:4";
+            // Портретные
+            case "9:16" -> "9:16";
+            case "3:4" -> "3:4";
+            case "2:3" -> "2:3";
+            case "4:5" -> "4:5";
+            // По умолчанию используем квадрат
             default -> "1:1";
         };
+    }
+
+    /**
+     * Объединение нескольких изображений по промпту
+     */
+    public byte[] mergeImages(List<byte[]> images, String prompt, ImageConfig config) {
+        try {
+            log.info("Запрос на слияние {} изображений через CometAPI", images.size());
+
+            // Формируем тело запроса
+            JSONObject requestBody = new JSONObject();
+            JSONArray contents = new JSONArray();
+            JSONObject content = new JSONObject();
+            JSONArray parts = new JSONArray();
+
+            // Добавляем текстовый промпт
+            JSONObject textPart = new JSONObject();
+            textPart.put("text", prompt);
+            parts.put(textPart);
+
+            // Добавляем все изображения
+            for (int i = 0; i < images.size(); i++) {
+                byte[] image = images.get(i);
+                JSONObject imagePart = new JSONObject();
+                JSONObject inlineData = new JSONObject();
+
+                inlineData.put("mimeType", "image/jpeg");
+                inlineData.put("data", Base64.getEncoder().encodeToString(image));
+
+                imagePart.put("inlineData", inlineData);
+                parts.put(imagePart);
+            }
+
+            content.put("parts", parts);
+            contents.put(content);
+            requestBody.put("contents", contents);
+
+            // Добавляем конфигурацию генерации
+            JSONObject generationConfig = new JSONObject();
+            JSONArray modalities = new JSONArray();
+            modalities.put("IMAGE");
+            generationConfig.put("responseModalities", modalities);
+
+            JSONObject imageConfig = new JSONObject();
+            imageConfig.put("aspectRatio", config.getAspectRatio());
+            imageConfig.put("imageSize", config.getResolution());
+
+            generationConfig.put("imageConfig", imageConfig);
+            requestBody.put("generationConfig", generationConfig);
+
+            String requestBodyStr = requestBody.toString();
+
+            // Отправляем запрос
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+
+            HttpEntity<String> entity = new HttpEntity<>(requestBodyStr, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    API_URL,                                                                     //???
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            // Обработка ответа
+            if (response.getStatusCode() == HttpStatus.OK) {
+                JSONObject jsonResponse = new JSONObject(response.getBody());
+                JSONArray candidates = jsonResponse.getJSONArray("candidates");
+                if (candidates.length() > 0) {
+                    JSONObject candidate = candidates.getJSONObject(0);
+                    JSONObject contentObj = candidate.getJSONObject("content");
+                    JSONArray partsArray = contentObj.getJSONArray("parts");
+
+                    for (int i = 0; i < partsArray.length(); i++) {
+                        JSONObject part = partsArray.getJSONObject(i);
+                        if (part.has("inlineData")) {
+                            JSONObject inlineData = part.getJSONObject("inlineData");
+                            String base64Image = inlineData.getString("data");
+                            return Base64.getDecoder().decode(base64Image);
+                        }
+                    }
+                }
+                throw new RuntimeException("В ответе нет изображения");
+            } else {
+                throw new RuntimeException("Ошибка API: " + response.getStatusCode() + " - " + response.getBody());
+            }
+
+        } catch (Exception e) {
+            log.error("Ошибка при слиянии изображений через CometAPI", e);
+            throw new RuntimeException("Не удалось объединить изображения: " + e.getMessage(), e);
+        }
     }
 
 }
