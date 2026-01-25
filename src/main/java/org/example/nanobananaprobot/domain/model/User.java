@@ -25,7 +25,7 @@ import java.util.List;
 @Setter
 @Getter
 @Builder
-public class User implements UserDetails {
+public class   User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
