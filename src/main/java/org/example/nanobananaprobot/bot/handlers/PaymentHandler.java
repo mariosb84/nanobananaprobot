@@ -7,4 +7,5 @@ public interface PaymentHandler {
     void handlePaymentCheck(Long chatId, String paymentId);
     void handlePaymentCheckCallback(CallbackQuery callbackQuery, String paymentId);
     /* УБИРАЕМ старые методы: handleSubscriptionPayment, checkAutoPayment*/
+    void handleTokenPackagePurchase(Long chatId, String tokenCount, String price);
 }

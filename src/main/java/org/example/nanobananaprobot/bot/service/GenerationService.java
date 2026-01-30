@@ -22,6 +22,7 @@ public class GenerationService {
     private final HiggsfieldImageService higgsfieldImageService;
 
     private final CometApiService cometApiService;
+    private final CostCalculatorService costCalculatorService; // Добавить эту строку в поля класса
 
     @Transactional
     public void handleImageGeneration(Long chatId, String prompt) {
@@ -136,7 +137,7 @@ public class GenerationService {
             telegramService.sendMessage(chatId,
                     "✅ Изображение готово!\n\n" +
                             "📝 Промпт: _" + prompt + "_\n" +
-                            "⚙️ Настройки: " + config.getDescription() + "\n" + // Добавлено
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                             "🎨 Осталось генераций: " + newBalance
             );
 

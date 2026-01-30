@@ -55,6 +55,8 @@ public class UserStateManager {
     public static final String STATE_WAITING_MULTIPLE_IMAGES_UPLOAD = "WAITING_MULTIPLE_IMAGES_UPLOAD";
     public static final String STATE_WAITING_MERGE_PROMPT = "WAITING_MERGE_PROMPT";
 
+    public static final String STATE_WAITING_TOKEN_PACKAGE = "WAITING_TOKEN_PACKAGE"; // Новое состояние
+
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
     }

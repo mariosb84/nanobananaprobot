@@ -6,6 +6,7 @@ import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
 import org.example.nanobananaprobot.bot.service.*;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.CometApiService;
+import org.example.nanobananaprobot.service.CostCalculatorService;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.scheduling.annotation.Async;
@@ -37,6 +38,8 @@ public class MessageHandlerImpl implements MessageHandler {
     private final MenuFactory menuFactory;
 
     private final CometApiService cometApiService;
+
+    private final CostCalculatorService costCalculatorService; // Добавляем
 
     @Override
     public void handleTextMessage(Message message) {
@@ -216,9 +219,53 @@ public class MessageHandlerImpl implements MessageHandler {
             case UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD:
                 return handleMultipleImagesUploadState(chatId, text);
 
+            case UserStateManager.STATE_WAITING_TOKEN_PACKAGE:
+                handleTokenPackageSelection(chatId, text);
+                return true;
+
             default:
                 return false;
         }
+    }
+
+    /* НОВЫЙ МЕТОД: Обработка выбора пакета токенов*/
+    private void handleTokenPackageSelection(Long chatId, String text) {
+        String tokenCount = "";
+        String price = "";
+
+        switch (text) {
+            case "5 токенов - 25₽":
+                tokenCount = "5";
+                price = "25";
+                break;
+            case "10 токенов - 50₽":
+                tokenCount = "10";
+                price = "50";
+                break;
+            case "30 токенов - 150₽":
+                tokenCount = "30";
+                price = "150";
+                break;
+            case "50 токенов - 250₽":
+                tokenCount = "50";
+                price = "250";
+                break;
+            case "100 токенов - 500₽":
+                tokenCount = "100";
+                price = "500";
+                break;
+            case "🔙 Назад":
+                sendMainMenu(chatId);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                return;
+            default:
+                telegramService.sendMessage(chatId, "Неизвестный пакет");
+                return;
+        }
+
+        /* Создаем платеж*/
+        paymentHandler.handleTokenPackagePurchase(chatId, tokenCount, price);
+        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
     /**
@@ -283,11 +330,15 @@ public class MessageHandlerImpl implements MessageHandler {
         }
 
         // Проверяем баланс
-        if (balanceService.getImageBalance(user.getId()) <= 0) {
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        int tokensNeeded = costCalculatorService.calculateTokens(config);
+
+        if (!balanceService.hasEnoughTokens(user.getId(), tokensNeeded)) {
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно генераций!\n\n" +
-                            "🎨 Баланс: 0 изображений\n" +
-                            "🛒 Купите пакет генераций в магазине"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
             return;
         }
@@ -321,19 +372,20 @@ public class MessageHandlerImpl implements MessageHandler {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
         // Проверяем достаточно ли средств с учётом настроек качества
-        double cost = config.calculateCost();
-        if (!balanceService.canAffordGeneration(user.getId(), cost)) {
+        int tokensNeeded = costCalculatorService.calculateTokens(config);
+        if (!balanceService.canEditImage(user.getId(), config)) {
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно средств!\n\n" +
-                            "💰 Требуется: $" + String.format("%.2f", cost) + "\n" +
-                            "🛒 Пополните баланс"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
             return;
         }
 
-        // Списываем баланс
-        boolean used = balanceService.useImageGeneration(user.getId(), cost);
+       // Списываем токены
+        boolean used = balanceService.useImageEdit(user.getId(), config);
         if (!used) {
             telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
@@ -346,7 +398,7 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(chatId,
                 "🎨 Редактирую изображение...\n\n" +
                         "📝 Описание изменений: _" + prompt + "_\n" +
-                        "⚙️ Настройки: " + config.getDescription() + "\n" +
+                        "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                         "⏱️ Это займет ~20 секунд"
         );
 
@@ -370,7 +422,7 @@ public class MessageHandlerImpl implements MessageHandler {
                         "Текущие настройки:\n" +
                         "• Соотношение сторон: " + config.getAspectRatio() + "\n" +
                         "• Разрешение: " + config.getResolution() + "\n" +
-                        "• Стоимость: $" + String.format("%.2f", config.calculateCost()) + "\n\n" +
+                        "• Стоимость: " + costCalculatorService.getDescription(config) + "\n\n" +
                         "Выберите параметр для изменения:"
         );
 
@@ -500,7 +552,7 @@ public class MessageHandlerImpl implements MessageHandler {
                             "Новые параметры:\n" +
                             "• Соотношение сторон: " + config.getAspectRatio() + "\n" +
                             "• Разрешение: " + config.getResolution() + "\n" +
-                            "• Стоимость: $" + String.format("%.2f", config.calculateCost())
+                            "• Стоимость: " + costCalculatorService.getDescription(config)
             );
 
             // Снова показываем меню настроек
@@ -681,27 +733,6 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Проверяем команды*/
-
-         /* if ("🎨 Сгенерировать изображение".equals(text)) {
-            int balance = balanceService.getImageBalance(user.getId());
-            if (balance > 0) {
-                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
-                telegramService.sendMessage(chatId,
-                        "🎨 *Введите описание для изображения:*\n\n" +
-                                "Осталось генераций: " + balance + "\n" +
-                                "Пример: 'Космонавт верхом на лошади в стиле Пикассо'"
-                );
-            } else {
-                telegramService.sendMessage(chatId,
-                        "❌ Недостаточно генераций!\n\n" +
-                                "🎨 Баланс: 0 изображений\n" +
-                                "🛒 Купите пакет генераций в магазине"
-                );
-            }
-
-        }*/
-
         if ("🎨 Сгенерировать изображение".equals(text)) {
             handleImageGenerationCommand(chatId, user);
         } else if ("✏️ Редактировать изображение".equals(text)) {
@@ -728,30 +759,8 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
             }
             case "🛒 Купить генерации" -> {
-                SendMessage message = new SendMessage();
-                message.setChatId(chatId.toString());
-                message.setText("🛒 *Покупка генераций*\n\nВыберите тип генераций:");
-                message.setParseMode("Markdown");
-
-                ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-                keyboard.setResizeKeyboard(true);
-
-                List<KeyboardRow> rows = new ArrayList<>();
-
-                KeyboardRow row1 = new KeyboardRow();
-                row1.add(new KeyboardButton("🎨 Изображения"));
-                row1.add(new KeyboardButton("🎥 Видео"));
-
-                KeyboardRow row2 = new KeyboardRow();
-                row2.add(new KeyboardButton("🔙 Назад"));
-
-                rows.add(row1);
-                rows.add(row2);
-                keyboard.setKeyboard(rows);
-                message.setReplyMarkup(keyboard);
-
-                telegramService.sendMessage(message);
-                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_PACKAGE_TYPE);
+                telegramService.sendMessage(menuFactory.createTokenPackagesMenu(chatId));
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_TOKEN_PACKAGE);
             }
             case "📊 Мой баланс" -> telegramService.sendMessage(menuFactory.createStatsMenu(chatId));
             case "🔙 Назад", "🏠 Главное меню" -> sendMainMenu(chatId);
@@ -764,24 +773,26 @@ public class MessageHandlerImpl implements MessageHandler {
 
     /* НОВЫЙ МЕТОД: Обработка команды генерации с учетом настроек*/
     private void handleImageGenerationCommand(Long chatId, User user) {
-        int balance = balanceService.getImageBalance(user.getId());
-        if (balance > 0) {
-            // Получаем настройки пользователя
-            ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        int tokensNeeded = costCalculatorService.calculateTokens(config);
+        int userBalance = balanceService.getTokensBalance(user.getId());
 
+        if (balanceService.canGenerateImage(user.getId(), config)) {
             telegramService.sendMessage(chatId,
                     "🎨 *Введите описание для изображения:*\n\n" +
-                            "Осталось генераций: " + balance + "\n" +
-                            "⚙️ Текущие настройки: " + config.getDescription() + "\n\n" +
+                            "🎨 Баланс: " + userBalance + " токенов\n" +
+                            "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            "⚙️ Текущие настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
                             "Пример: 'Космонавт верхом на лошади в стиле Пикассо'"
             );
 
             stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
         } else {
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно генераций!\n\n" +
-                            "🎨 Баланс: 0 изображений\n" +
-                            "🛒 Купите пакет генераций в магазине"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + userBalance + " токенов\n" +
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
         }
     }
@@ -814,7 +825,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
             // Вызов API для редактирования
             byte[] imageBytes = cometApiService.editImage(sourceImage, prompt, config);
-            int newBalance = balanceService.getImageBalance(userId);
+            int newBalance = balanceService.getTokensBalance(userId);
 
             // Отправляем результат
 
@@ -826,7 +837,7 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId,
                     "✅ Изображение отредактировано!\n\n" +
                             "📝 Описание изменений: _" + prompt + "_\n" +
-                            "⚙️ Настройки: " + config.getDescription() + "\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                             "🎨 Осталось генераций: " + newBalance
             );
 
@@ -837,8 +848,8 @@ public class MessageHandlerImpl implements MessageHandler {
 
             // Возвращаем баланс при ошибке
             try {
-                double cost = config.calculateCost();
-                balanceService.refundGeneration(userId, cost);
+                int tokens = costCalculatorService.calculateTokens(config);
+                balanceService.refundTokens(userId, tokens);
                 log.info("Баланс возвращен для userId: {}", userId);
             } catch (Exception ex) {
                 log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
@@ -881,6 +892,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 UserStateManager.STATE_WAITING_QUALITY_SETTINGS.equals(state) ||  // Для настроек качества
                 UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD.equals(state) ||
                 UserStateManager.STATE_WAITING_MERGE_PROMPT.equals(state) ||
+                UserStateManager.STATE_WAITING_TOKEN_PACKAGE.equals(state) || // Добавить эту строку
                 UserStateManager.STATE_GENERATION_IN_PROGRESS.equals(state)       // Для генерации
         ) && user != null;
     }
@@ -936,11 +948,17 @@ public class MessageHandlerImpl implements MessageHandler {
         }
 
         // Проверяем баланс
-        if (balanceService.getImageBalance(user.getId()) <= 0) {
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setMode("merge");
+        int minTokensNeeded = costCalculatorService.calculateMergeTokens(config, 2); // Минимум 2 фото
+
+        if (!balanceService.hasEnoughTokens(user.getId(), minTokensNeeded)) {
+            int userBalance = balanceService.getTokensBalance(user.getId());
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно генераций!\n\n" +
-                            "🎨 Баланс: 0 изображений\n" +
-                            "🛒 Купите пакет генераций в магазине"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + userBalance + " токенов\n" +
+                            "💰 Минимально требуется: " + minTokensNeeded + " токенов (" + (minTokensNeeded * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
             return;
         }
@@ -994,19 +1012,21 @@ public class MessageHandlerImpl implements MessageHandler {
         // Проверяем достаточно ли средств
         /*double cost = config.calculateCost();*/
         config.setMode("merge");
-        double cost = config.calculateMergeCost(images.size());
-        if (!balanceService.canAffordGeneration(user.getId(), cost)) {
+        int tokensNeeded = costCalculatorService.calculateMergeTokens(config, images.size());
+        if (!balanceService.canMergeImages(user.getId(), config, images.size())) {
+            int userBalance = balanceService.getTokensBalance(user.getId());
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно средств!\n\n" +
-                            "💰 Требуется: $" + String.format("%.2f", cost) + "\n" +
-                            "🛒 Пополните баланс"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + userBalance + " токенов\n" +
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
             return;
         }
 
-        // Списываем баланс
-        boolean used = balanceService.useImageGeneration(user.getId(), cost);
+// Списываем токены
+        boolean used = balanceService.useImageMerge(user.getId(), config, images.size());
         if (!used) {
             telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
@@ -1019,7 +1039,7 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(chatId,
                 "🖼️ Объединяю " + images.size() + " изображений...\n\n" +
                         "📝 Описание: _" + prompt + "_\n" +
-                        "⚙️ Настройки: " + config.getDescription() + "\n" +
+                        "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                         "⏱️ Это займет ~30 секунд"
         );
 
@@ -1037,7 +1057,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
             // Вызов API для слияния
             byte[] resultImage = cometApiService.mergeImages(images, prompt, config);
-            int newBalance = balanceService.getImageBalance(userId);
+            int newBalance = balanceService.getTokensBalance(userId);
 
             // Отправляем результат
             telegramService.sendImageSmart(chatId, resultImage, "merged_image.jpg", config);
@@ -1046,7 +1066,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     "✅ Изображения успешно объединены!\n\n" +
                             "📝 Описание: _" + prompt + "_\n" +
                             "🖼️ Объединено фото: " + images.size() + "\n" +
-                            "⚙️ Настройки: " + config.getDescription() + "\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                             "🎨 Осталось генераций: " + newBalance
             );
 
@@ -1057,8 +1077,8 @@ public class MessageHandlerImpl implements MessageHandler {
 
             // Возвращаем баланс при ошибке
             try {
-                double cost = config.calculateCost();
-                balanceService.refundGeneration(userId, cost);
+                int tokens = costCalculatorService.calculateMergeTokens(config, images.size());
+                balanceService.refundTokens(userId, tokens);
                 log.info("Баланс возвращен для userId: {}", userId);
             } catch (Exception ex) {
                 log.error("Не удалось вернуть баланс для userId: {}", userId, ex);

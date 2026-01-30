@@ -1,76 +1,85 @@
 -- ============================================
--- ПОЛНАЯ СТРУКТУРА БД ДЛЯ NANO BANANA AI БОТА
+-- ОБНОВЛЕННАЯ СТРУКТУРА БД ДЛЯ NANO BANANA AI БОТА
+-- Версия 2.0 (с токенами)
 -- ============================================
 
--- 1. ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
+-- 1. ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ (person)
+CREATE TABLE IF NOT EXISTS person (
+    person_id SERIAL PRIMARY KEY,
+    person_login VARCHAR(100) UNIQUE NOT NULL,
+    person_password VARCHAR(255) NOT NULL,
+    person_email VARCHAR(255) NOT NULL,
+    person_phone VARCHAR(12),
     telegram_chat_id BIGINT UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. ТАБЛИЦА РОЛЕЙ
+-- 2. ТАБЛИЦА РОЛЕЙ (если нужно)
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- 3. СВЯЗЬ ПОЛЬЗОВАТЕЛИ-РОЛИ
-CREATE TABLE IF NOT EXISTS user_roles (
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, role_id)
+-- 3. СВЯЗЬ ПОЛЬЗОВАТЕЛИ-РОЛИ (person_roles)
+CREATE TABLE IF NOT EXISTS person_roles (
+    person_id INTEGER REFERENCES person(person_id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL,
+    PRIMARY KEY (person_id, role)
 );
 
--- 4. ТАБЛИЦА БАЛАНСА ГЕНЕРАЦИЙ
-CREATE TABLE IF NOT EXISTS generation_balance (
+-- 4. ТАБЛИЦА БАЛАНСА ТОКЕНОВ И ГЕНЕРАЦИЙ
+CREATE TABLE IF NOT EXISTS user_generation_balance (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    image_balance INTEGER DEFAULT 0,
-    video_balance INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INTEGER UNIQUE REFERENCES person(person_id) ON DELETE CASCADE,
+
+    -- НОВОЕ: БАЛАНС В ТОКЕНАХ
+    tokens_balance INTEGER NOT NULL DEFAULT 0,
+
+    -- Старые поля (для обратной совместимости)
+    image_balance INTEGER NOT NULL DEFAULT 0,
+    video_balance INTEGER NOT NULL DEFAULT 0,
+    trial_used BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. ТАБЛИЦА ПОКУПОК ПАКЕТОВ
-CREATE TABLE IF NOT EXISTS package_purchases (
+-- 5. ТАБЛИЦА ПОКУПОК ТОКЕНОВ (новый тип пакета)
+CREATE TABLE IF NOT EXISTS token_purchases (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    package_type VARCHAR(10) CHECK (package_type IN ('image', 'video')),
-    package_count INTEGER,
-    price DECIMAL(10, 2),
+    user_id INTEGER REFERENCES person(person_id) ON DELETE CASCADE,
+    package_type VARCHAR(20) CHECK (package_type IN ('tokens', 'image', 'video')),
+    token_count INTEGER,
+    price_rub DECIMAL(10, 2),
     payment_id VARCHAR(100),
     payment_status VARCHAR(20) DEFAULT 'pending',
     purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     activated_at TIMESTAMP
 );
 
--- 6. ТАБЛИЦА ИСТОРИИ ГЕНЕРАЦИЙ
-CREATE TABLE IF NOT EXISTS generation_history (
+-- 6. ТАБЛИЦА ИСТОРИИ ОПЕРАЦИЙ (генерации + списания)
+CREATE TABLE IF NOT EXISTS operation_history (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(10) CHECK (type IN ('image', 'video')),
-    prompt TEXT,
-    image_url TEXT,
-    video_url TEXT,
-    model VARCHAR(50),
+    user_id INTEGER REFERENCES person(person_id) ON DELETE CASCADE,
+    operation_type VARCHAR(20) CHECK (operation_type IN ('generate', 'edit', 'merge', 'purchase', 'refund')),
+    tokens_change INTEGER, -- + при покупке, - при списании
+    tokens_balance_after INTEGER,
+    details JSONB, -- {resolution: '1K', aspect_ratio: '16:9', prompt: '...', image_count: 2}
     status VARCHAR(20) DEFAULT 'completed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 7. ИНДЕКСЫ ДЛЯ БЫСТРОГО ПОИСКА
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_telegram_id ON users(telegram_chat_id);
-CREATE INDEX idx_balance_user_id ON generation_balance(user_id);
-CREATE INDEX idx_purchases_user_id ON package_purchases(user_id);
-CREATE INDEX idx_history_user_id ON generation_history(user_id);
-CREATE INDEX idx_history_created ON generation_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_person_login ON person(person_login);
+CREATE INDEX IF NOT EXISTS idx_person_telegram ON person(telegram_chat_id);
+CREATE INDEX IF NOT EXISTS idx_balance_user_id ON user_generation_balance(user_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON token_purchases(user_id);
+CREATE INDEX IF NOT EXISTS idx_history_user_id ON operation_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_history_created ON operation_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_history_type ON operation_history(operation_type);
 
--- 8. ТРИГГЕРЫ ДЛЯ ОБНОВЛЕНИЯ UPDATED_AT
+-- 8. ТРИГГЕРЫ ДЛЯ ОБНОВЛЕНИЯ ВРЕМЕНИ
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -79,40 +88,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_users_updated_at
-BEFORE UPDATE ON users
+-- Для таблицы person (users)
+CREATE TRIGGER update_person_updated_at
+BEFORE UPDATE ON person
 FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- Для таблицы баланса
 CREATE TRIGGER update_balance_updated_at
-BEFORE UPDATE ON generation_balance
+BEFORE UPDATE ON user_generation_balance
 FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- 9. ТЕСТОВЫЕ ДАННЫЕ
+-- 9. ДОБАВЛЕНИЕ КОЛОНКИ ТОКЕНОВ (если таблица уже существует)
+-- Простой вариант без DO блока
+ALTER TABLE user_generation_balance
+ADD COLUMN IF NOT EXISTS tokens_balance INTEGER NOT NULL DEFAULT 0;
+
+-- Обновляем существующие записи
+UPDATE user_generation_balance
+SET
+    image_balance = 0,
+    trial_used = TRUE,
+    tokens_balance = 0
+WHERE trial_used = FALSE OR image_balance > 0;
+
+-- 10. НАЧАЛЬНЫЕ ДАННЫЕ
 INSERT INTO roles (name) VALUES
 ('ROLE_USER'),
 ('ROLE_ADMIN')
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO users (username, password, email) VALUES
-('test_user', '$2a$10$testpasswordhash', 'user@test.com'),
-('test_admin', '$2a$10$testpasswordhash', 'admin@test.com')
-ON CONFLICT (username) DO NOTHING;
-
-INSERT INTO user_roles (user_id, role_id)
-SELECT u.id, r.id
-FROM users u, roles r
-WHERE u.username = 'test_user' AND r.name = 'ROLE_USER'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO user_roles (user_id, role_id)
-SELECT u.id, r.id
-FROM users u, roles r
-WHERE u.username = 'test_admin' AND r.name = 'ROLE_ADMIN'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO generation_balance (user_id, image_balance, video_balance)
-SELECT id, 3, 0 FROM users WHERE username = 'test_user'
-ON CONFLICT (user_id) DO NOTHING;
-
--- 10. ПРОВЕРКА
-SELECT '✅ База данных успешно создана!' as message;
+-- 11. ПРОВЕРКА СТРУКТУРЫ
+SELECT
+    '✅ База данных готова к работе с токенами!' as message,
+    (SELECT COUNT(*) FROM person) as users_count,
+    (SELECT COUNT(*) FROM user_generation_balance WHERE tokens_balance > 0) as users_with_tokens,
+    (SELECT SUM(tokens_balance) FROM user_generation_balance) as total_tokens;

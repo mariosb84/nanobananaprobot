@@ -74,10 +74,8 @@ public class MenuFactoryImpl implements MenuFactory {
 
         String status = "";
         if (user != null) {
-            int imageBalance = balanceService.getImageBalance(user.getId());
-            int videoBalance = balanceService.getVideoBalance(user.getId());
-            status = "🎨 Баланс изображений: " + imageBalance + "\n" +
-                    "🎥 Баланс видео: " + videoBalance + "\n\n";
+            int tokensBalance = balanceService.getTokensBalance(user.getId());
+            status = "🎨 Баланс токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)\n\n";
         }
 
         SendMessage message = new SendMessage();
@@ -224,11 +222,10 @@ public class MenuFactoryImpl implements MenuFactory {
             stats += "👤 Логин: " + user.getUsername() + "\n";
 
             /* Получаем баланс из нового сервиса*/
-            int imageBalance = balanceService.getImageBalance(user.getId());
-            int videoBalance = balanceService.getVideoBalance(user.getId());
+            int tokensBalance = balanceService.getTokensBalance(user.getId());
 
-            stats += "🎨 Баланс изображений: " + imageBalance + "\n";
-            stats += "🎥 Баланс видео: " + videoBalance + "\n\n";
+            stats += "💰 Баланс токенов: " + tokensBalance + "\n";
+            stats += "💵 Стоимость: " + (tokensBalance * 5) + " ₽\n\n";
 
             stats += "*Генерации в этом месяце:*\n";
             stats += "🎨 Изображений: 0\n";
@@ -261,11 +258,8 @@ public class MenuFactoryImpl implements MenuFactory {
         User user = userService.findUserByUsername(username);
         if (user == null) return "❌ Пользователь не найден";
 
-        int imageBalance = balanceService.getImageBalance(user.getId());
-        int videoBalance = balanceService.getVideoBalance(user.getId());
-
-        return "🎨 Изображений: " + imageBalance + "\n" +
-                "🎥 Видео: " + videoBalance;
+        int tokensBalance = balanceService.getTokensBalance(user.getId());
+        return "💰 Токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)";
     }
 
     @Override
@@ -359,6 +353,61 @@ public class MenuFactoryImpl implements MenuFactory {
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }
+
+    @Override
+    public SendMessage createTokenPackagesMenu(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+
+        String text = "💰 *Пакеты токенов*\n\n";
+        text += "1 токен = 5 ₽\n\n";
+        text += "Пакеты по расчётам :\n";
+        text += "• 5 токенов - 25₽\n";
+        text += "• 10 токенов - 50₽\n";
+        text += "• 30 токенов - 150₽\n";
+        text += "• 50 токенов - 250₽\n";
+        text += "• 100 токенов - 500₽\n\n";
+        text += "*Стоимость генераций:*\n";
+        text += "• 1K: 3 токена (15₽)\n";
+        text += "• 2K: 4 токена (20₽)\n";
+        text += "• 4K: 5 токенов (25₽)\n";
+        text += "• Редактирование: +1 токен\n";
+        text += "• Слияние: база +1 токен за фото\n\n";
+        text += "Выберите пакет:";
+
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        // Пакеты токенов
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("5 токенов - 25₽"));
+        row1.add(new KeyboardButton("10 токенов - 50₽"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("30 токенов - 150₽"));
+        row2.add(new KeyboardButton("50 токенов - 250₽"));
+
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("100 токенов - 500₽"));
+
+        KeyboardRow rowBack = new KeyboardRow();
+        rowBack.add(new KeyboardButton("🔙 Назад"));
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(rowBack);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);

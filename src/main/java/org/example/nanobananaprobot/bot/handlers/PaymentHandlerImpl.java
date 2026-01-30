@@ -119,20 +119,38 @@ public class PaymentHandlerImpl implements PaymentHandler {
                         User user = userService.findByTelegramChatId(chatId);
 
                         if (user != null) {
-                            if ("image".equals(paymentInfo.getPackageType())) {
-                                balanceService.addImageGenerations(user.getId(),
-                                        Integer.parseInt(paymentInfo.getCount()));
+                            // ОБНОВЛЕНО: Добавляем токены вместо старых генераций
+                            if ("tokens".equals(paymentInfo.getPackageType())) {
+                                int tokens = Integer.parseInt(paymentInfo.getCount());
+                                balanceService.addTokens(user.getId(), tokens);
                                 telegramService.sendMessage(chatId,
-                                        "✅ Пакет из " + paymentInfo.getCount() +
-                                                " генераций изображений добавлен!\n" +
-                                                "🎨 Новый баланс: " + balanceService.getImageBalance(user.getId()));
-                            } else {
-                                balanceService.addVideoGenerations(user.getId(),
-                                        Integer.parseInt(paymentInfo.getCount()));
+                                        "✅ Пакет из " + tokens + " токенов добавлен!\n" +
+                                                "💰 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
+                                                "💵 Стоимость: " + (balanceService.getTokensBalance(user.getId()) * 5) + " ₽");
+
+                            } else if ("image".equals(paymentInfo.getPackageType())) {
+                                // Для обратной совместимости (старые пакеты)
+                                int imageCount = Integer.parseInt(paymentInfo.getCount());
+                                // Конвертируем старые генерации в токены (1 генерация = 3 токена)
+                                int tokens = imageCount * 3;
+                                balanceService.addTokens(user.getId(), tokens);
                                 telegramService.sendMessage(chatId,
-                                        "✅ Пакет из " + paymentInfo.getCount() +
-                                                " генераций видео добавлен!\n" +
-                                                "🎥 Новый баланс: " + balanceService.getVideoBalance(user.getId()));
+                                        "✅ Старый пакет конвертирован!\n" +
+                                                "🎨 Было: " + imageCount + " генераций\n" +
+                                                "💰 Добавлено: " + tokens + " токенов\n" +
+                                                "💵 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов");
+
+                            } else if ("video".equals(paymentInfo.getPackageType())) {
+                                // Для обратной совместимости (старые видео пакеты)
+                                int videoCount = Integer.parseInt(paymentInfo.getCount());
+                                // 1 видео = 10 токенов (50 ₽)
+                                int tokens = videoCount * 10;
+                                balanceService.addTokens(user.getId(), tokens);
+                                telegramService.sendMessage(chatId,
+                                        "✅ Старый видео пакет конвертирован!\n" +
+                                                "🎥 Было: " + videoCount + " видео\n" +
+                                                "💰 Добавлено: " + tokens + " токенов\n" +
+                                                "💵 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов");
                             }
 
                             pendingPayments.remove(paymentId);
@@ -189,6 +207,68 @@ public class PaymentHandlerImpl implements PaymentHandler {
         answer.setCallbackQueryId(callbackQuery.getId());
         answer.setText(text);
         telegramService.answerCallback(answer);
+    }
+
+    @Override
+    public void handleTokenPackagePurchase(Long chatId, String tokenCount, String price) {
+        executor.submit(() -> {
+            try {
+                User user = userService.findByTelegramChatId(chatId);
+                if (user == null) {
+                    telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+                    return;
+                }
+
+                String description = "Пакет " + tokenCount + " токенов";
+
+                var paymentResponse = paymentService.createPackagePayment(
+                        chatId,
+                        price,
+                        description,
+                        "tokens", // Новый тип пакета
+                        tokenCount
+                );
+
+                if (paymentResponse != null && paymentResponse.getId() != null) {
+                    savePaymentInfo(chatId, paymentResponse.getId(), "tokens", tokenCount, price);
+
+                    /* Запускаем автоматическую проверку*/
+                    packageAutoCheckService.startPackageCheck(
+                            paymentResponse.getId(),
+                            chatId,
+                            "tokens", // Новый тип пакета
+                            tokenCount,
+                            price
+                    );
+
+                    String confirmationUrl = getConfirmationUrl(paymentResponse);
+                    String paymentUrl = confirmationUrl != null ? confirmationUrl :
+                            this.paymentUrl + paymentResponse.getId();
+
+                    String messageText = "💳 *Оплата пакета токенов*\n\n" +
+                            "💰 Пакет: " + tokenCount + " токенов\n" +
+                            "💵 Сумма: " + price + " ₽\n\n" +
+                            "1 токен = 5 ₽\n\n" +
+                            "*Что можно купить:*\n" +
+                            "• 1K генерация: 3 токена (15₽)\n" +
+                            "• 2K генерация: 4 токена (20₽)\n" +
+                            "• 4K генерация: 5 токенов (25₽)\n" +
+                            "• Редактирование: +1 токен\n\n" +
+                            "🔗 Ссылка для оплаты:\n" +
+                            paymentUrl + "\n\n" +
+                            "После успешной оплаты токены добавятся автоматически!";
+
+                    telegramService.sendMessage(chatId, messageText);
+
+                } else {
+                    telegramService.sendMessage(chatId, "❌ Ошибка создания платежа");
+                }
+
+            } catch (Exception e) {
+                log.error("Token package purchase error for chatId: {}", chatId, e);
+                telegramService.sendMessage(chatId, "❌ Ошибка при создании платежа");
+            }
+        });
     }
 
 }

@@ -14,4 +14,5 @@ public interface MenuFactory {
     /* НОВЫЕ МЕТОДЫ ДЛЯ ПАКЕТОВ*/
     SendMessage createImagePackagesMenu(Long chatId);
     SendMessage createVideoPackagesMenu(Long chatId);
+    SendMessage createTokenPackagesMenu(Long chatId);
 }

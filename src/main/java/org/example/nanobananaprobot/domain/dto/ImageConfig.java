@@ -4,22 +4,13 @@ import lombok.Data;
 
 @Data
 public class ImageConfig {
+    // ========== ОСНОВНЫЕ ПОЛЯ ==========
     private String aspectRatio = "1:1";
     private String resolution = "1K";
     private String mode = "generate"; // "generate", "edit", "merge"
     private byte[] sourceImage;
 
-    // БАЗОВЫЕ СТОИМОСТИ
-    private static final double COST_GENERATE_1K = 0.11;
-    private static final double COST_EDIT_1K = 0.15;
-    private static final double COST_MERGE_1K = 0.18;
-
-    // МНОЖИТЕЛИ
-    private static final double MULTIPLIER_2K = 1.5;
-    private static final double MULTIPLIER_4K = 2.2;
-    private static final double MULTIPLIER_PER_EXTRA_IMAGE = 0.12;
-
-    // ВАЖНО: Полный список форматов, поддерживаемых Nano Banana Pro
+    // ========== ВАЛИДНЫЕ ЗНАЧЕНИЯ (только для информации) ==========
     public static final String[] VALID_ASPECT_RATIOS = {
             "1:1",      // Квадрат
             "4:3",      // Классический
@@ -34,12 +25,19 @@ public class ImageConfig {
     };
 
     public static final String[] VALID_RESOLUTIONS = {"1K", "2K", "4K"};
+    public static final String[] VALID_MODES = {"generate", "edit", "merge"};
+
+    // ========== КОНСТАНТЫ УБРАНЫ (теперь в CostCalculatorService) ==========
+
+    // ========== ТОЛЬКО ПРОСТАЯ ВАЛИДАЦИЯ ==========
 
     /**
-     * Проверка валидности настроек
+     * Базовая проверка валидности (только типы)
      */
     public boolean isValid() {
-        return isValidAspectRatio(aspectRatio) && isValidResolution(resolution);
+        return isValidAspectRatio(aspectRatio) &&
+                isValidResolution(resolution) &&
+                isValidMode(mode);
     }
 
     private boolean isValidAspectRatio(String ratio) {
@@ -56,64 +54,44 @@ public class ImageConfig {
         return false;
     }
 
+    private boolean isValidMode(String m) {
+        for (String validMode : VALID_MODES) {
+            if (validMode.equals(m)) return true;
+        }
+        return false;
+    }
+
+    // ========== МЕТОДЫ РАСЧЁТА УБРАНЫ ==========
+    // calculateCost(), calculateMergeCost(), getDescription(), getMergeDescription()
+    // теперь в CostCalculatorService
+
+    // ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+
     /**
-     * Рассчитывает стоимость на основе настроек
+     * Быстрая проверка, является ли режимом слияния
      */
-    public double calculateCost() {
-        double base;
-
-        switch (mode) {
-            case "edit":
-                base = COST_EDIT_1K;
-                break;
-            case "merge":
-                base = COST_MERGE_1K;
-                break;
-            case "generate":
-            default:
-                base = COST_GENERATE_1K;
-        }
-
-        if ("2K".equals(resolution)) {
-            return base * MULTIPLIER_2K;
-        } else if ("4K".equals(resolution)) {
-            return base * MULTIPLIER_4K;
-        }
-
-        return base; // 1K
+    public boolean isMergeMode() {
+        return "merge".equals(mode);
     }
 
     /**
-     * Рассчитывает стоимость слияния
+     * Быстрая проверка, является ли режимом редактирования
      */
-    public double calculateMergeCost(int imageCount) {
-        if (!"merge".equals(mode)) {
-            return calculateCost();
-        }
-
-        double baseCost = calculateCost();
-
-        if (imageCount < 2) {
-            return baseCost;
-        }
-
-        double multiplier = 1.0 + (imageCount - 1) * MULTIPLIER_PER_EXTRA_IMAGE;
-        return baseCost * multiplier;
+    public boolean isEditMode() {
+        return "edit".equals(mode);
     }
 
     /**
-     * Возвращает человеко-читаемое описание
+     * Быстрая проверка, является ли режимом генерации
      */
-    public String getDescription() {
-        return String.format("%s | %s | %.2f$", aspectRatio, resolution, calculateCost());
+    public boolean isGenerateMode() {
+        return "generate".equals(mode) || mode == null;
     }
 
     /**
-     * Описание для слияния
+     * Простое строковое представление (без стоимости)
      */
-    public String getMergeDescription(int imageCount) {
-        return String.format("%d фото | %s | %s | %.2f$",
-                imageCount, aspectRatio, resolution, calculateMergeCost(imageCount));
+    public String toSimpleString() {
+        return String.format("%s | %s", aspectRatio, resolution);
     }
-
 }

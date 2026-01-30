@@ -102,8 +102,9 @@ public class AuthService {
             /* Добавляем 3 бесплатные генерации*/
             User user = userService.findUserByUsername(username);
             if (user != null) {
-                balanceService.addImageGenerations(user.getId(), 3);
-                log.info("Added 3 free generations for new user: {}", username);
+                //balanceService.addImageGenerations(user.getId(), 3);                            // убираем пока бесплатные генерации
+               // log.info("Added 3 free generations for new user: {}", username);
+                log.info("Added 0 free generations for new user: {}", username);
             }
 
             SignInRequest loginRequest = new SignInRequest();
@@ -115,7 +116,8 @@ public class AuthService {
                 userService.updateTelegramChatId(username, chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 telegramService.sendMessage(chatId, "✅ Регистрация и авторизация успешны!");
-                telegramService.sendMessage(chatId, "🎉 Вам добавлено 3 бесплатные генерации изображений!");
+                //telegramService.sendMessage(chatId, "🎉 Вам добавлено 3 бесплатные генерации изображений!");   // убираем пока бесплатные генерации
+                telegramService.sendMessage(chatId, "💰 Баланс: 0 токенов. Купите пакет в магазине!");
 
                 CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
                         .execute(() -> telegramService.sendMessage(menuFactory.createMainMenu(chatId)));
