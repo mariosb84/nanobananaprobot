@@ -192,7 +192,9 @@ public class GenerationBalanceService {
     @Transactional
     public void addImageGenerations(Long userId, Integer count) {
         log.warn("Используется устаревший метод addImageGenerations");
-        // Конвертируем старые "генерации" в токены (1 генерация = 3 токена)
+
+        /* Конвертируем старые "генерации" в токены (1 генерация = 3 токена)*/
+
         addTokens(userId, count * 3);
     }
 

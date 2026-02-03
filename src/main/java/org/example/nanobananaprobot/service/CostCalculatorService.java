@@ -41,15 +41,11 @@ public class CostCalculatorService {
             return TOKENS_GENERATE_1K; /* Значение по умолчанию*/
         }
 
-        switch (config.getMode()) {
-            case "edit":
-                return calculateEditTokens(config.getResolution());
-            case "merge":
-                return calculateMergeTokens(config, 1);
-            case "generate":
-            default:
-                return calculateGenerateTokens(config.getResolution());
-        }
+        return switch (config.getMode()) {
+            case "edit" -> calculateEditTokens(config.getResolution());
+            case "merge" -> calculateMergeTokens(config, 1);
+            default -> calculateGenerateTokens(config.getResolution());
+        };
     }
 
     /**
@@ -58,14 +54,13 @@ public class CostCalculatorService {
      */
     public int calculateMergeTokens(ImageConfig config, int imageCount) {
         if (imageCount < 2) {
-            imageCount = 1; /* Минимум 1 фото для расчёта*/
+            imageCount = 2; /* Минимум 2 фото для слияния*/
         }
 
         int baseTokens = getMergeBaseTokens(config.getResolution());
 
-        /* +1 токен за каждое дополнительное фото*/
-
-        int extraTokens = (imageCount - 1) * TOKENS_PER_EXTRA_IMAGE;
+        /* +1 токен за каждое дополнительное фото (начиная с 3-го)*/
+        int extraTokens = Math.max(0, (imageCount - 2)) * TOKENS_PER_EXTRA_IMAGE;
 
         return baseTokens + extraTokens;
     }

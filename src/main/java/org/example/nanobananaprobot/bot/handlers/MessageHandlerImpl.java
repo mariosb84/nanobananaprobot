@@ -279,7 +279,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 telegramService.sendMessage(chatId,
                         "✏️ Отлично! Загружено " + images.size() + " фото.\n\n" +
                                 "Теперь введите описание для слияния:\n" +
-                                "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки автомат Калашникова'"
+                                "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки ананас'"
                 );
             } else {
                 telegramService.sendMessage(chatId,
@@ -331,6 +331,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Проверяем баланс*/
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setMode("edit"); /* ← ДОБАВИТЬ ЭТУ СТРОЧКУ!*/
         int tokensNeeded = costCalculatorService.calculateTokens(config);
 
         if (!balanceService.hasEnoughTokens(user.getId(), tokensNeeded)) {
@@ -415,6 +416,9 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Получаем текущие настройки*/
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
+
+        /* Устанавливаем mode для корректного отображения*/
+        config.setMode("generate"); /* ← ДОБАВИТЬ!*/
 
         /* Отправляем меню настроек*/
         telegramService.sendMessage(chatId,
@@ -774,6 +778,7 @@ public class MessageHandlerImpl implements MessageHandler {
     /* НОВЫЙ МЕТОД: Обработка команды генерации с учетом настроек*/
     private void handleImageGenerationCommand(Long chatId, User user) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setMode("generate"); /* ← ДОБАВИТЬ!*/
         int tokensNeeded = costCalculatorService.calculateTokens(config);
         int userBalance = balanceService.getTokensBalance(user.getId());
 
