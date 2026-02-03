@@ -99,12 +99,20 @@ public class PaymentAutoCheckService {
                 balanceService.addVideoGenerations(user.getId(), count);
                 log.info("Video package activated - User: {}, Count: {}, Payment: {}",
                         user.getUsername(), count, paymentId);
+            } else if ("tokens".equals(paymentInfo.getPackageType())) {
+                int tokens = Integer.parseInt(paymentInfo.getCount());
+                balanceService.addTokens(user.getId(), tokens);
+                log.info("Token package activated - User: {}, Tokens: {}, Payment: {}",
+                        user.getUsername(), tokens, paymentId);
             }
 
         } catch (Exception e) {
             log.error("Error activating package: {}", paymentId, e);
         } finally {
-            packagePayments.remove(paymentId);
+
+            /*packagePayments.remove(paymentId);*/                         /* ←  ЧТОБЫ НЕ БЫЛО ОШИБОК В ЛОГАХ - ЭТУ СТРОКУ*/
+            stopPackageCheck(paymentId);                                  /* ← ЗАМЕНИТЬ НА ЭТУ!*/
+
         }
     }
 

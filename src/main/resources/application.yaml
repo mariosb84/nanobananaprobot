@@ -51,9 +51,14 @@ webdrivermanager:
 
 # YooKassa Payment System
 yookassa:
-  shop-id: ${YOOKASSA_SHOP_ID:1180332}
-  secret-key: ${YOOKASSA_SECRET_KEY:live_TwRr2APY3ngv0M-aBnhAewcpSk8oPyltkLGRg_Pgh-g}
-  test-mode: false
+  # real-shop:
+  #shop-id: ${YOOKASSA_SHOP_ID:1180332}
+  #secret-key: ${YOOKASSA_SECRET_KEY:live_TwRr2APY3ngv0M-aBnhAewcpSk8oPyltkLGRg_Pgh-g}
+  #test-mode: false
+  # test-shop:
+  shop-id: ${YOOKASSA_SHOP_ID:1181320}
+  secret-key: ${YOOKASSA_SECRET_KEY:test_7AfQYlI0WOQVImchsPcaNkIfQdreb47ttSLDTnSqchA}
+  test-mode: true
 
 # ProxyAPI для DALL-E 3
 # ВНИМАНИЕ: Никогда не храните ключи прямо в YAML!
