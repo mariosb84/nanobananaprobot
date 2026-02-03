@@ -7,7 +7,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
-@EnableAsync  // Добавьте эту аннотацию
+@EnableAsync  /* Добавьте эту аннотацию*/
 public class NanobananaprobotApplication extends SpringBootServletInitializer {
 
 	@Override

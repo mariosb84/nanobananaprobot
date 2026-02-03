@@ -6,35 +6,39 @@ import org.springframework.stereotype.Service;
 @Service
 public class CostCalculatorService {
 
-    // ========== ЦЕНЫ В ТОКЕНАХ (1 токен = 5 ₽) ==========
-    // По расчётам Кости: 1K=3т(15₽), 2K=4т(20₽), 4K=5т(25₽)
+    /* ========== ЦЕНЫ В ТОКЕНАХ (1 токен = 5 ₽) ==========
+     По расчётам: 1K=3т(15₽), 2K=4т(20₽), 4K=5т(25₽)*/
 
-    // ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ
-    private static final int TOKENS_GENERATE_1K = 3;   // 15 ₽
-    private static final int TOKENS_GENERATE_2K = 4;   // 20 ₽
-    private static final int TOKENS_GENERATE_4K = 5;   // 25 ₽
+    /* ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ*/
 
-    // РЕДАКТИРОВАНИЕ (стоимость выше генерации)
-    private static final int TOKENS_EDIT_1K = 4;       // 20 ₽ (+1 токен)
-    private static final int TOKENS_EDIT_2K = 5;       // 25 ₽ (+1 токен)
-    private static final int TOKENS_EDIT_4K = 6;       // 30 ₽ (+1 токен)
+    private static final int TOKENS_GENERATE_1K = 3;   /* 15 ₽*/
+    private static final int TOKENS_GENERATE_2K = 4;   /* 20 ₽*/
+    private static final int TOKENS_GENERATE_4K = 5;   /* 25 ₽*/
 
-    // СЛИЯНИЕ (базовая стоимость)
-    private static final int TOKENS_MERGE_BASE_1K = 5;    // 25 ₽
-    private static final int TOKENS_MERGE_BASE_2K = 6;    // 30 ₽
-    private static final int TOKENS_MERGE_BASE_4K = 7;    // 35 ₽
+    /* РЕДАКТИРОВАНИЕ (стоимость выше генерации)*/
 
-    // ДОПОЛНИТЕЛЬНЫЕ ИЗОБРАЖЕНИЯ
-    private static final int TOKENS_PER_EXTRA_IMAGE = 1; // +5 ₽ за каждое доп. фото
+    private static final int TOKENS_EDIT_1K = 4;       /* 20 ₽ (+1 токен)*/
+    private static final int TOKENS_EDIT_2K = 5;       /* 25 ₽ (+1 токен)*/
+    private static final int TOKENS_EDIT_4K = 6;       /* 30 ₽ (+1 токен)*/
 
-    // ========== ОСНОВНЫЕ МЕТОДЫ РАСЧЁТА ==========
+    /* СЛИЯНИЕ (базовая стоимость)*/
+
+    private static final int TOKENS_MERGE_BASE_1K = 5;    /* 25 ₽*/
+    private static final int TOKENS_MERGE_BASE_2K = 6;    /* 30 ₽*/
+    private static final int TOKENS_MERGE_BASE_4K = 7;    /* 35 ₽*/
+
+    /* ДОПОЛНИТЕЛЬНЫЕ ИЗОБРАЖЕНИЯ*/
+
+    private static final int TOKENS_PER_EXTRA_IMAGE = 1; /* +5 ₽ за каждое доп. фото*/
+
+    /* ========== ОСНОВНЫЕ МЕТОДЫ РАСЧЁТА ==========*/
 
     /**
      * Рассчитывает стоимость операции в токенах
      */
     public int calculateTokens(ImageConfig config) {
         if (config == null) {
-            return TOKENS_GENERATE_1K; // Значение по умолчанию
+            return TOKENS_GENERATE_1K; /* Значение по умолчанию*/
         }
 
         switch (config.getMode()) {
@@ -54,18 +58,19 @@ public class CostCalculatorService {
      */
     public int calculateMergeTokens(ImageConfig config, int imageCount) {
         if (imageCount < 2) {
-            imageCount = 1; // Минимум 1 фото для расчёта
+            imageCount = 1; /* Минимум 1 фото для расчёта*/
         }
 
         int baseTokens = getMergeBaseTokens(config.getResolution());
 
-        // +1 токен за каждое дополнительное фото
+        /* +1 токен за каждое дополнительное фото*/
+
         int extraTokens = (imageCount - 1) * TOKENS_PER_EXTRA_IMAGE;
 
         return baseTokens + extraTokens;
     }
 
-    // ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+    /* ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========*/
 
     /**
      * Токены для генерации
@@ -76,7 +81,7 @@ public class CostCalculatorService {
         return switch (resolution) {
             case "2K" -> TOKENS_GENERATE_2K;
             case "4K" -> TOKENS_GENERATE_4K;
-            default -> TOKENS_GENERATE_1K; // 1K или неизвестное
+            default -> TOKENS_GENERATE_1K; /* 1K или неизвестное*/
         };
     }
 
@@ -134,17 +139,17 @@ public class CostCalculatorService {
      * Конвертирует токены в рубли
      */
     public int tokensToRubles(int tokens) {
-        return tokens * 5; // 1 токен = 5 ₽
+        return tokens * 5; /* 1 токен = 5 ₽*/
     }
 
     /**
      * Конвертирует рубли в токены (при покупке пакетов)
      */
     public int rublesToTokens(int rubles) {
-        return rubles / 5; // 5 ₽ = 1 токен
+        return rubles / 5; /* 5 ₽ = 1 токен*/
     }
 
-    // ========== МЕТОДЫ ДЛЯ ПАКЕТОВ ТОКЕНОВ ==========
+    /* ========== МЕТОДЫ ДЛЯ ПАКЕТОВ ТОКЕНОВ ==========*/
 
     /**
      * Рассчитывает количество токенов для пакета

@@ -28,10 +28,12 @@ public class PaymentAutoCheckService {
                 paymentId, chatId, packageType, count);
 
         /* Сохраняем информацию о пакете*/
+
         PaymentInfo paymentInfo = new PaymentInfo(paymentId, packageType, count, price, chatId);
         packagePayments.put(paymentId, paymentInfo);
 
         /* Запускаем проверку каждые 30 секунд*/
+
         ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             try {
                 checkPackagePayment(paymentId);
@@ -43,6 +45,7 @@ public class PaymentAutoCheckService {
         activeChecks.put(paymentId, task);
 
         /* Останавливаем через 2 часа (максимальное время ожидания)*/
+
         scheduler.schedule(() -> {
             if (activeChecks.containsKey(paymentId)) {
                 log.info("Package check expired for payment: {}", paymentId);
@@ -85,6 +88,7 @@ public class PaymentAutoCheckService {
             }
 
             /* Активируем пакет*/
+
             if ("image".equals(paymentInfo.getPackageType())) {
                 int count = Integer.parseInt(paymentInfo.getCount());
                 balanceService.addImageGenerations(user.getId(), count);

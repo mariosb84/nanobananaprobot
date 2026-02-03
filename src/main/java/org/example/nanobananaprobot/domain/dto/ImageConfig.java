@@ -4,32 +4,35 @@ import lombok.Data;
 
 @Data
 public class ImageConfig {
-    // ========== ОСНОВНЫЕ ПОЛЯ ==========
+
+    /* ========== ОСНОВНЫЕ ПОЛЯ ==========*/
+
     private String aspectRatio = "1:1";
     private String resolution = "1K";
-    private String mode = "generate"; // "generate", "edit", "merge"
+    private String mode = "generate"; /* "generate", "edit", "merge"*/
     private byte[] sourceImage;
 
-    // ========== ВАЛИДНЫЕ ЗНАЧЕНИЯ (только для информации) ==========
+    /* ========== ВАЛИДНЫЕ ЗНАЧЕНИЯ (только для информации) ==========*/
+
     public static final String[] VALID_ASPECT_RATIOS = {
-            "1:1",      // Квадрат
-            "4:3",      // Классический
-            "3:4",      // Портрет
-            "16:9",     // Широкий
-            "9:16",     // Сторис
-            "3:2",      // Фотография
-            "2:3",      // Портрет 2:3
-            "5:4",      // 5:4
-            "4:5",      // 4:5
-            "21:9"      // Ультраширокий
+            "1:1",      /* Квадрат*/
+            "4:3",      /* Классический*/
+            "3:4",      /* Портрет*/
+            "16:9",     /* Широкий*/
+            "9:16",     /* Сторис*/
+            "3:2",      /* Фотография*/
+            "2:3",      /* Портрет 2:3*/
+            "5:4",      /* 5:4*/
+            "4:5",      /* 4:5*/
+            "21:9"      /* Ультраширокий*/
     };
 
     public static final String[] VALID_RESOLUTIONS = {"1K", "2K", "4K"};
     public static final String[] VALID_MODES = {"generate", "edit", "merge"};
 
-    // ========== КОНСТАНТЫ УБРАНЫ (теперь в CostCalculatorService) ==========
+    /* ========== КОНСТАНТЫ УБРАНЫ (теперь в CostCalculatorService) ==========*/
 
-    // ========== ТОЛЬКО ПРОСТАЯ ВАЛИДАЦИЯ ==========
+    /* ========== ТОЛЬКО ПРОСТАЯ ВАЛИДАЦИЯ ==========*/
 
     /**
      * Базовая проверка валидности (только типы)
@@ -61,11 +64,12 @@ public class ImageConfig {
         return false;
     }
 
-    // ========== МЕТОДЫ РАСЧЁТА УБРАНЫ ==========
-    // calculateCost(), calculateMergeCost(), getDescription(), getMergeDescription()
-    // теперь в CostCalculatorService
+    /* ========== МЕТОДЫ РАСЧЁТА УБРАНЫ ==========*/
 
-    // ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+    /* calculateCost(), calculateMergeCost(), getDescription(), getMergeDescription()
+     теперь в CostCalculatorService*/
+
+    /* ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========*/
 
     /**
      * Быстрая проверка, является ли режимом слияния
@@ -94,4 +98,5 @@ public class ImageConfig {
     public String toSimpleString() {
         return String.format("%s | %s", aspectRatio, resolution);
     }
+
 }

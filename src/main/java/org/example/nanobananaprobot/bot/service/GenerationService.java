@@ -22,7 +22,7 @@ public class GenerationService {
     private final HiggsfieldImageService higgsfieldImageService;
 
     private final CometApiService cometApiService;
-    private final CostCalculatorService costCalculatorService; // Добавить эту строку в поля класса
+    private final CostCalculatorService costCalculatorService; /* Добавить эту строку в поля класса*/
 
     @Transactional
     public void handleImageGeneration(Long chatId, String prompt) {
@@ -32,7 +32,8 @@ public class GenerationService {
             return;
         }
 
-        // 1. Проверяем баланс
+        /* 1. Проверяем баланс*/
+
         if (balanceService.getImageBalance(user.getId()) <= 0) {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно генераций!\n\n" +
@@ -42,14 +43,16 @@ public class GenerationService {
             return;
         }
 
-        // 2. Списываем баланс
+        /* 2. Списываем баланс*/
+
         boolean used = balanceService.useImageGeneration(user.getId());
         if (!used) {
             telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
             return;
         }
 
-        // 3. Меняем состояние и уведомляем пользователя
+        /* 3. Меняем состояние и уведомляем пользователя*/
+
         stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
 
         telegramService.sendMessage(chatId,
@@ -58,7 +61,8 @@ public class GenerationService {
                         "⏱️ Это займет ~20 секунд"
         );
 
-        // 4. Запускаем асинхронную генерацию
+        /* 4. Запускаем асинхронную генерацию*/
+
         startAsyncGeneration(chatId, user.getId(), prompt);
     }
 
@@ -66,6 +70,7 @@ public class GenerationService {
      * Асинхронная генерация изображения через DALL-E 3
      * Метод выполняется в отдельном потоке
      */
+
    /* @Async
     public void startAsyncGeneration(Long chatId, Long userId, String prompt) {
         try {
@@ -112,28 +117,34 @@ public class GenerationService {
      * Асинхронная генерация изображения через Nano Banana Pro (CometAPI)
      * Метод выполняется в отдельном потоке
      */
+
     @Async
     public void startAsyncGeneration(Long chatId, Long userId, String prompt) {
         try {
             log.info("Начало генерации через CometAPI для chatId: {}, prompt: {}", chatId, prompt);
 
-            // 1. Получаем настройки пользователя
-            ImageConfig config = stateManager.getOrCreateConfig(chatId); // Добавьте эту строку
+            /* 1. Получаем настройки пользователя*/
 
-            // 2. Вызов нового API Comet (Nano Banana Pro) с настройками
-            byte[] imageBytes = cometApiService.generateImage(prompt, config); // Добавьте config
+            ImageConfig config = stateManager.getOrCreateConfig(chatId); /* Добавьте эту строку*/
 
-            // 3. Получаем актуальный баланс после успешной генерации
+            /* 2. Вызов нового API Comet (Nano Banana Pro) с настройками*/
+
+            byte[] imageBytes = cometApiService.generateImage(prompt, config); /* Добавьте config*/
+
+            /* 3. Получаем актуальный баланс после успешной генерации*/
+
             int newBalance = balanceService.getImageBalance(userId);
 
-            // 4. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)
+            /* 4. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)*/
 
             /*telegramService.sendPhoto(chatId, imageBytes, "generated_image.jpg");*/
 
-            // ★ Умная отправка с автовыбором
+            /* ★ Умная отправка с автовыбором*/
+
             telegramService.sendImageSmart(chatId, imageBytes, "image.jpg", config);
 
-            // 5. Отправляем текстовое подтверждение с информацией о настройках
+            /* 5. Отправляем текстовое подтверждение с информацией о настройках*/
+
             telegramService.sendMessage(chatId,
                     "✅ Изображение готово!\n\n" +
                             "📝 Промпт: _" + prompt + "_\n" +
@@ -147,7 +158,8 @@ public class GenerationService {
         } catch (Exception e) {
             log.error("Ошибка генерации через CometAPI для chatId: {}", chatId, e);
 
-            // 6. Возвращаем баланс при ошибке
+            /* 6. Возвращаем баланс при ошибке*/
+
             try {
                 balanceService.addImageGenerations(userId, 1);
                 log.info("Баланс возвращен для userId: {} после ошибки CometAPI", userId);
@@ -155,14 +167,17 @@ public class GenerationService {
                 log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
             }
 
-            // 7. Уведомляем пользователя об ошибке
+            /* 7. Уведомляем пользователя об ошибке*/
+
             String errorMessage = "❌ Произошла ошибка при генерации изображения\n\n" +
                     "🎨 Баланс возвращен\n" +
                     "⚠️ " + getErrorMessage(e);
 
             telegramService.sendMessage(chatId, errorMessage);
         } finally {
-            // 8. Возвращаем пользователя в главное меню
+
+            /* 8. Возвращаем пользователя в главное меню*/
+
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
     }
@@ -170,6 +185,7 @@ public class GenerationService {
     /**
      * Вспомогательный метод для форматирования сообщений об ошибках
      */
+
     private String getErrorMessage(Exception e) {
         if (e.getMessage().contains("quota") || e.getMessage().contains("balance")) {
             return "Проверьте баланс аккаунта CometAPI";
@@ -184,6 +200,7 @@ public class GenerationService {
      * Обработка генерации видео
      * TODO: Реализовать после настройки изображений
      */
+
     public void handleVideoGeneration(Long chatId, String prompt) {
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
@@ -191,7 +208,8 @@ public class GenerationService {
             return;
         }
 
-        // Проверяем баланс видео
+        /* Проверяем баланс видео*/
+
         if (balanceService.getVideoBalance(user.getId()) <= 0) {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно генераций видео!\n\n" +
@@ -207,8 +225,9 @@ public class GenerationService {
                         "⚠️ Функция появится в ближайшее время"
         );
 
-        // TODO: Реализовать списание видео-баланса
-        // boolean used = balanceService.useVideoGeneration(user.getId());
+        /* TODO: Реализовать списание видео-баланса*/
+
+        /* boolean used = balanceService.useVideoGeneration(user.getId());*/
     }
 
     @Transactional
@@ -216,7 +235,8 @@ public class GenerationService {
         try {
             telegramService.sendMessage(chatId, "🧪 Тестирую Higgsfield...");
 
-            // Временный вызов Higgsfield вместо DALL-E 3
+            /* Временный вызов Higgsfield вместо DALL-E 3*/
+
             String imageUrl = higgsfieldImageService.generateImage(prompt);
 
             telegramService.sendMessage(chatId,

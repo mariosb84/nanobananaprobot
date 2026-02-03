@@ -44,7 +44,9 @@ public class UserServiceData implements UserService, UserDetailsService {
     @Override
     public Optional<User> add(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
+
             /* Заменить на свои исключения*/
+
             throw new RuntimeException("Пользователь с таким именем уже существует");
         }
 
@@ -56,6 +58,7 @@ public class UserServiceData implements UserService, UserDetailsService {
         if (userRepository.existsByPhone(user.getPhone())) {
             throw new RuntimeException("Пользователь с таким номером телефона уже существует");
         }*/
+
         user.setRoles(List.of(ROLE_USER));
         return Optional.ofNullable(save(user));
     }
@@ -97,8 +100,10 @@ public class UserServiceData implements UserService, UserDetailsService {
      */
     @Override
     public User findUserByUsername(String username) {
+
        /* return userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));*/
+
         return userRepository.findUserByUsername(username).orElse(null);
     }
 
@@ -158,7 +163,9 @@ public class UserServiceData implements UserService, UserDetailsService {
      */
     @Override
     public User getCurrentUser() {
+
         /* Получение имени пользователя из контекста Spring Security*/
+
         return findUserByUsername(SecurityContextHolder.
                 getContext().getAuthentication().getName());
     }
@@ -167,6 +174,7 @@ public class UserServiceData implements UserService, UserDetailsService {
      * Обновление у User -а только одного поля: subscriptionEndDate
      * <p>
      */
+
    /* @Transactional
     public User updateUserSubscriptionEndDate(String userName, LocalDateTime subscriptionEndDate) {
         logger.debug("Transaction started for user: {}", userName);

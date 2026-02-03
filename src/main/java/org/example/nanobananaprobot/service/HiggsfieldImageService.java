@@ -33,10 +33,13 @@ public class HiggsfieldImageService {
     }
 
     public String generateImage(String prompt) throws Exception {
-        // 1. Запускаем генерацию
+
+        /* 1. Запускаем генерацию*/
+
         String requestId = startGeneration(prompt);
 
-        // 2. Ждём и проверяем статус
+        /* 2. Ждём и проверяем статус*/
+
         return waitForResult(requestId);
     }
 
@@ -91,7 +94,8 @@ public class HiggsfieldImageService {
                 } else if ("failed".equals(status.getStatus())) {
                     throw new RuntimeException("Генерация не удалась");
                 }
-                // Если still processing - продолжаем ждать
+
+                /* Если still processing - продолжаем ждать*/
             }
         }
         throw new RuntimeException("Таймаут ожидания результата");

@@ -74,6 +74,7 @@ public class PaymentHandlerImpl implements PaymentHandler {
                     savePaymentInfo(chatId, paymentResponse.getId(), packageType, count, price);
 
                     /* Запускаем автоматическую проверку*/
+
                     packageAutoCheckService.startPackageCheck(
                             paymentResponse.getId(),
                             chatId,
@@ -119,7 +120,9 @@ public class PaymentHandlerImpl implements PaymentHandler {
                         User user = userService.findByTelegramChatId(chatId);
 
                         if (user != null) {
-                            // ОБНОВЛЕНО: Добавляем токены вместо старых генераций
+
+                            /* ОБНОВЛЕНО: Добавляем токены вместо старых генераций*/
+
                             if ("tokens".equals(paymentInfo.getPackageType())) {
                                 int tokens = Integer.parseInt(paymentInfo.getCount());
                                 balanceService.addTokens(user.getId(), tokens);
@@ -129,9 +132,13 @@ public class PaymentHandlerImpl implements PaymentHandler {
                                                 "💵 Стоимость: " + (balanceService.getTokensBalance(user.getId()) * 5) + " ₽");
 
                             } else if ("image".equals(paymentInfo.getPackageType())) {
-                                // Для обратной совместимости (старые пакеты)
+
+                                /* Для обратной совместимости (старые пакеты)*/
+
                                 int imageCount = Integer.parseInt(paymentInfo.getCount());
-                                // Конвертируем старые генерации в токены (1 генерация = 3 токена)
+
+                                /* Конвертируем старые генерации в токены (1 генерация = 3 токена)*/
+
                                 int tokens = imageCount * 3;
                                 balanceService.addTokens(user.getId(), tokens);
                                 telegramService.sendMessage(chatId,
@@ -141,9 +148,13 @@ public class PaymentHandlerImpl implements PaymentHandler {
                                                 "💵 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов");
 
                             } else if ("video".equals(paymentInfo.getPackageType())) {
-                                // Для обратной совместимости (старые видео пакеты)
+
+                                /* Для обратной совместимости (старые видео пакеты)*/
+
                                 int videoCount = Integer.parseInt(paymentInfo.getCount());
-                                // 1 видео = 10 токенов (50 ₽)
+
+                                /* 1 видео = 10 токенов (50 ₽)*/
+
                                 int tokens = videoCount * 10;
                                 balanceService.addTokens(user.getId(), tokens);
                                 telegramService.sendMessage(chatId,
@@ -225,7 +236,7 @@ public class PaymentHandlerImpl implements PaymentHandler {
                         chatId,
                         price,
                         description,
-                        "tokens", // Новый тип пакета
+                        "tokens", /* Новый тип пакета*/
                         tokenCount
                 );
 
@@ -233,10 +244,11 @@ public class PaymentHandlerImpl implements PaymentHandler {
                     savePaymentInfo(chatId, paymentResponse.getId(), "tokens", tokenCount, price);
 
                     /* Запускаем автоматическую проверку*/
+
                     packageAutoCheckService.startPackageCheck(
                             paymentResponse.getId(),
                             chatId,
-                            "tokens", // Новый тип пакета
+                            "tokens", /* Новый тип пакета*/
                             tokenCount,
                             price
                     );

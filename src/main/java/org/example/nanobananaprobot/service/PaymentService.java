@@ -25,6 +25,7 @@ public class PaymentService {
     private String amountSetCurrency;
 
     /* СТАРЫЙ МЕТОД ДЛЯ ПОДПИСОК - МОЖНО УДАЛИТЬ ИЛИ ОСТАВИТЬ КАК ЗАГЛУШКУ*/
+
     public PaymentCreateResponse createPayment(Long chatId, String price, String description) {
         try {
             PaymentCreateRequest request = new PaymentCreateRequest();
@@ -47,6 +48,7 @@ public class PaymentService {
             request.setMetadata(metadata);
 
             /* Чек для 54-ФЗ*/
+
             PaymentCreateRequest.Receipt receipt = new PaymentCreateRequest.Receipt();
             PaymentCreateRequest.Customer customer = new PaymentCreateRequest.Customer();
             if (user != null) {
@@ -80,6 +82,7 @@ public class PaymentService {
     }
 
     /* ОСНОВНОЙ МЕТОД ДЛЯ ПАКЕТОВ*/
+
     public PaymentCreateResponse createPackagePayment(Long chatId, String price, String description,
                                                       String packageType, String count) {
         try {
@@ -150,6 +153,7 @@ public class PaymentService {
     }
 
     /* МЕТОД ДЛЯ ОБРАБОТКИ ВЕБХУКОВ (ЕСЛИ БУДУТ ИСПОЛЬЗОВАТЬСЯ)*/
+
     public void handleWebhook(Object webhook) {
         log.info("Received webhook: {}", webhook);
         /* TODO: Реализовать при необходимости*/

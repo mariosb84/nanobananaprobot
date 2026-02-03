@@ -49,13 +49,16 @@ public class YooKassaClient {
             HttpEntity<PaymentCreateRequest> entity = new HttpEntity<>(request, headers);
 
             /* Логируем запрос*/
+
             log.info("Sending payment request to YooKassa: {}", request);
 
             /* Получаем сырой ответ для анализа*/
+
             ResponseEntity<String> rawResponse = restTemplate.exchange(
                     url, HttpMethod.POST, entity, String.class);
 
             /* Логируем ПОЛНЫЙ ответ от ЮKassa*/
+
             log.info("=== YooKassa RAW Response ===");
             log.info("Status: {}", rawResponse.getStatusCode());
             log.info("Headers: {}", rawResponse.getHeaders());
@@ -63,14 +66,17 @@ public class YooKassaClient {
             log.info("=== End YooKassa Response ===");
 
             /* Парсим JSON вручную чтобы увидеть структуру*/
+
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
             /* Сначала парсим в Map чтобы увидеть все поля*/
+
             Map<String, Object> responseMap = mapper.readValue(rawResponse.getBody(), Map.class);
             log.info("Response as Map: {}", responseMap);
 
             /* Затем парсим в наш DTO*/
+
             PaymentCreateResponse response = mapper.readValue(rawResponse.getBody(), PaymentCreateResponse.class);
 
             log.info("Parsed response - ID: {}, Status: {}, Confirmation: {}",

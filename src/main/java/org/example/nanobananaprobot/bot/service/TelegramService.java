@@ -68,7 +68,8 @@ public class TelegramService extends DefaultAbsSender {
     }
 
     public void sendMediaGroup(Long chatId, List<byte[]> imagesBytes, List<String> fileNames) {
-        // Реализация для отправки альбома
+
+        /* Реализация для отправки альбома*/
     }
 
     /**
@@ -107,8 +108,8 @@ public class TelegramService extends DefaultAbsSender {
                     sendDoc.setCaption(caption);
                 }
 
-                // ★ В библиотеке нет setTimeout, устанавливаем через BotOptions
-                // sendDoc.setTimeout(120); // УДАЛИТЬ ЭТУ СТРОКУ
+                /* ★ В библиотеке нет setTimeout, устанавливаем через BotOptions
+                 sendDoc.setTimeout(120);  УДАЛИТЬ ЭТУ СТРОКУ*/
 
                 execute(sendDoc);
                 log.info("✅ Документ успешно отправлен");
@@ -123,7 +124,8 @@ public class TelegramService extends DefaultAbsSender {
                     throw new RuntimeException("Не удалось отправить документ", e);
                 }
 
-                // Ждем перед повторной попыткой
+                /* Ждем перед повторной попыткой*/
+
                 try {
                     Thread.sleep(retryDelay);
                 } catch (InterruptedException ie) {
@@ -131,7 +133,8 @@ public class TelegramService extends DefaultAbsSender {
                     throw new RuntimeException("Прервано ожидание", ie);
                 }
 
-                // Увеличиваем задержку для следующей попытки
+                /* Увеличиваем задержку для следующей попытки*/
+
                 retryDelay *= 2;
             }
         }
@@ -147,7 +150,9 @@ public class TelegramService extends DefaultAbsSender {
             log.info("Изображение слишком большое для фото ({} MB)", sizeMB);
 
             try {
-                // 1. Пробуем отправить как документ
+
+                /* 1. Пробуем отправить как документ*/
+
                 String caption = String.format(
                         "🎨 %s | %s\n📦 Размер: %d MB\n🔗 Отправлено как документ",
                         config.getAspectRatio(),
@@ -165,12 +170,15 @@ public class TelegramService extends DefaultAbsSender {
                 log.warn("Не удалось отправить как документ, пробуем сжать...");
 
                 try {
-                    // 2. Fallback: сжимаем до 9.5MB и отправляем как фото
-                    long targetSize = 9_500_000L; // 9.5 MB в байтах
+
+                    /* 2. Fallback: сжимаем до 9.5MB и отправляем как фото*/
+
+                    long targetSize = 9_500_000L; /* 9.5 MB в байтах*/
                     byte[] compressed = smartCompressToSize(imageBytes, targetSize);
                     log.info("Сжато до {} MB", compressed.length / 1024 / 1024);
 
-                    // ★ Исправляем: вызываем свой же метод sendMessage
+                    /* ★ Исправляем: вызываем свой же метод sendMessage*/
+
                     sendMessage(chatId,
                             "⚠️ 4K изображение было сжато для отправки в Telegram\n" +
                                     "🎨 " + config.getAspectRatio() + " | " + config.getResolution()
@@ -197,7 +205,8 @@ public class TelegramService extends DefaultAbsSender {
         ByteArrayInputStream bis = new ByteArrayInputStream(originalBytes);
         BufferedImage image = ImageIO.read(bis);
 
-        // Начинаем с высокого качества
+        /* Начинаем с высокого качества*/
+
         float quality = 0.95f;
         byte[] result = null;
 
@@ -220,11 +229,13 @@ public class TelegramService extends DefaultAbsSender {
                 break;
             }
 
-            quality -= 0.05f; // Уменьшаем качество на 5%
+            quality -= 0.05f; /* Уменьшаем качество на 5%*/
         }
 
         if (result == null) {
-            // Если не удалось - возвращаем максимально сжатое
+
+            /* Если не удалось - возвращаем максимально сжатое*/
+
             return compressImage(image, 0.5f);
         }
 

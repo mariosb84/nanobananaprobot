@@ -16,15 +16,18 @@ public class UserStateManager {
     private final Map<Long, String> tempEmails = new ConcurrentHashMap<>();
     private final Map<Long, String> tempPrompts = new ConcurrentHashMap<>(); /* ДЛЯ ХРАНЕНИЯ ПРОМПТОВ*/
 
-    // Хранилище для временных данных
+    /* Хранилище для временных данных*/
+
     private final Map<Long, ImageConfig> userConfigs = new ConcurrentHashMap<>();
     private final Map<Long, byte[]> userUploadedImages = new ConcurrentHashMap<>();
 
-    // Хранилище для нескольких изображений
+    /* Хранилище для нескольких изображений*/
+
     private final Map<Long, List<byte[]>> userMultipleImages = new ConcurrentHashMap<>();
     private final Map<Long, String> mediaGroupIds = new ConcurrentHashMap<>();
 
     /* УПРОЩЕННЫЕ СОСТОЯНИЯ*/
+
     public static final String STATE_NONE = "NONE";
     public static final String STATE_WAITING_USERNAME = "WAITING_FOR_USERNAME";
     public static final String STATE_WAITING_PASSWORD = "WAITING_FOR_PASSWORD";
@@ -35,23 +38,27 @@ public class UserStateManager {
     public static final String STATE_AUTHORIZED_MAIN = "AUTHORIZED_MAIN_MENU";
 
     /* НОВЫЕ СОСТОЯНИЯ ДЛЯ ГЕНЕРАЦИИ*/
+
     public static final String STATE_WAITING_IMAGE_PROMPT = "WAITING_IMAGE_PROMPT";
     public static final String STATE_WAITING_VIDEO_PROMPT = "WAITING_VIDEO_PROMPT";
     public static final String STATE_GENERATION_IN_PROGRESS = "GENERATION_IN_PROGRESS";
 
     /* СОСТОЯНИЯ ДЛЯ ПОКУПКИ ПАКЕТОВ*/
+
     public static final String STATE_WAITING_PACKAGE_TYPE = "WAITING_PACKAGE_TYPE";
     public static final String STATE_WAITING_IMAGE_PACKAGE = "WAITING_IMAGE_PACKAGE";
     public static final String STATE_WAITING_VIDEO_PACKAGE = "WAITING_VIDEO_PACKAGE";
 
     public static final String STATE_WAITING_TEST_PROMPT = "WAITING_TEST_PROMPT";
 
-    // Новые состояния для загрузки изображений и настроек
+    /* Новые состояния для загрузки изображений и настроек*/
+
     public static final String STATE_WAITING_IMAGE_UPLOAD = "WAITING_IMAGE_UPLOAD";
     public static final String STATE_WAITING_EDIT_PROMPT = "WAITING_EDIT_PROMPT";
     public static final String STATE_WAITING_QUALITY_SETTINGS = "WAITING_QUALITY_SETTINGS";
 
-    // НОВЫЕ СОСТОЯНИЯ ДЛЯ СЛИЯНИЯ ИЗОБРАЖЕНИЙ
+    /* НОВЫЕ СОСТОЯНИЯ ДЛЯ СЛИЯНИЯ ИЗОБРАЖЕНИЙ*/
+
     public static final String STATE_WAITING_MULTIPLE_IMAGES_UPLOAD = "WAITING_MULTIPLE_IMAGES_UPLOAD";
     public static final String STATE_WAITING_MERGE_PROMPT = "WAITING_MERGE_PROMPT";
 
@@ -94,6 +101,7 @@ public class UserStateManager {
     }
 
     /* МЕТОДЫ ДЛЯ ПРОМПТОВ*/
+
     public String getTempPrompt(Long chatId) {
         return tempPrompts.get(chatId);
     }

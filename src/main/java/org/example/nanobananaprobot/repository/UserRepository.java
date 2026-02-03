@@ -32,6 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByPhone(String phone);
 
     /* ✅ Оставляем только для обновления telegram chat id*/
+
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE User u SET u.telegramChatId = :telegramChatId WHERE u.username = :username")
@@ -39,10 +40,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
                               @Param("telegramChatId") Long telegramChatId);
 
     /* ✅ Оставляем для обновления email (если нужно)*/
+
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE User u SET u.email = :email WHERE u.id = :id")
     void updateEmail(@Param("id") Long id, @Param("email") String email);
 
     User findByTelegramChatId(Long chatId);
+
 }

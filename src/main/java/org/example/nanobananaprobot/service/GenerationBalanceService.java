@@ -18,7 +18,7 @@ public class GenerationBalanceService {
     private final UserGenerationBalanceRepository balanceRepository;
     private final CostCalculatorService costCalculatorService; // Будет создан позже
 
-    // ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========
+    /* ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========*/
 
     @Transactional
     public UserGenerationBalance getOrCreateBalance(Long userId) {
@@ -26,11 +26,13 @@ public class GenerationBalanceService {
                 .orElseGet(() -> {
                     UserGenerationBalance newBalance = new UserGenerationBalance();
                     newBalance.setUserId(userId);
-                    // НАЧАЛЬНЫЙ БАЛАНС: 0 токенов (без бесплатных)
+
+                    /* НАЧАЛЬНЫЙ БАЛАНС: 0 токенов (без бесплатных)*/
+
                     newBalance.setTokensBalance(0);
-                    newBalance.setImageBalance(0); // Было 3
+                    newBalance.setImageBalance(0); /* Было 3*/
                     newBalance.setVideoBalance(0);
-                    newBalance.setTrialUsed(true); // Триал сразу использован
+                    newBalance.setTrialUsed(true); /* Триал сразу использован*/
                     log.info("Создан баланс для нового пользователя userId: {}", userId);
                     return balanceRepository.save(newBalance);
                 });
@@ -84,7 +86,7 @@ public class GenerationBalanceService {
                 tokens, userId, balance.getTokensBalance());
     }
 
-    // ========== МЕТОДЫ ДЛЯ КОНКРЕТНЫХ ОПЕРАЦИЙ ==========
+    /* ========== МЕТОДЫ ДЛЯ КОНКРЕТНЫХ ОПЕРАЦИЙ ==========*/
 
     /**
      * Списывает токены за генерацию изображения
@@ -100,7 +102,9 @@ public class GenerationBalanceService {
      */
     @Transactional
     public boolean useImageEdit(Long userId, ImageConfig config) {
-        // Для редактирования устанавливаем режим
+
+        /* Для редактирования устанавливаем режим*/
+
         config.setMode("edit");
         int requiredTokens = costCalculatorService.calculateTokens(config);
         return useTokens(userId, requiredTokens);
@@ -140,8 +144,9 @@ public class GenerationBalanceService {
         return hasEnoughTokens(userId, requiredTokens);
     }
 
-    // ========== МЕТОДЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ==========
-    // (можно удалить позже, когда переведём всё на токены)
+    /* ========== МЕТОДЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ==========*/
+
+    /* (можно удалить позже, когда переведём всё на токены)*/
 
     /**
      * Старый метод для обратной совместимости
@@ -151,7 +156,9 @@ public class GenerationBalanceService {
     @Transactional
     public boolean useImageGeneration(Long userId) {
         log.warn("Используется устаревший метод useImageGeneration без конфига");
-        // Можно вернуть false или попробовать использовать токены
+
+        /* Можно вернуть false или попробовать использовать токены*/
+
         return false;
     }
 
@@ -171,7 +178,9 @@ public class GenerationBalanceService {
     @Deprecated
     public boolean canAffordGeneration(Long userId, double cost) {
         log.warn("Используется устаревший метод canAffordGeneration");
-        // Минимальная проверка: хотя бы 3 токена для генерации 1K
+
+        /* Минимальная проверка: хотя бы 3 токена для генерации 1K*/
+
         return getTokensBalance(userId) >= 3;
     }
 
@@ -208,7 +217,9 @@ public class GenerationBalanceService {
     @Transactional
     public void addVideoGenerations(Long userId, Integer count) {
         log.warn("Используется устаревший метод addVideoGenerations");
-        // Конвертируем старые "видео" в токены (1 видео = 10 токенов)
+
+        /* Конвертируем старые "видео" в токены (1 видео = 10 токенов)*/
+
         addTokens(userId, count * 10);
     }
 

@@ -28,7 +28,8 @@ public class CometApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // Добавьте логгер в начало класса
+    /* Добавьте логгер в начало класса*/
+
     private static final Logger log = LoggerFactory.getLogger(CometApiService.class);
 
     public CometApiService(RestTemplateBuilder restTemplateBuilder) {
@@ -44,10 +45,12 @@ public class CometApiService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
-        // Формируем запрос с учетом ImageConfig
+        /* Формируем запрос с учетом ImageConfig*/
+
         Map<String, Object> requestBody = createRequestBody(prompt, config);
 
-        // ★ ДОБАВЬ ЛОГИРОВАНИЕ ЗАПРОСА
+        /* ★ ДОБАВЬ ЛОГИРОВАНИЕ ЗАПРОСА*/
+
         try {
             String requestJson = objectMapper.writeValueAsString(requestBody);
             log.info("=== API REQUEST ===");
@@ -62,7 +65,8 @@ public class CometApiService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(API_URL, request, String.class);
 
-        // ★ ДОБАВЬ ЛОГИРОВАНИЕ ОТВЕТА
+        /* ★ ДОБАВЬ ЛОГИРОВАНИЕ ОТВЕТА*/
+
         log.info("=== API RESPONSE ===");
         log.info("Status: {}", response.getStatusCode());
         log.info("Body preview: {}", response.getBody().substring(0, Math.min(500, response.getBody().length())));
@@ -76,7 +80,8 @@ public class CometApiService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
-        // Формируем запрос для редактирования
+        /* Формируем запрос для редактирования*/
+
         Map<String, Object> requestBody = createEditRequestBody(sourceImage, prompt, config);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
@@ -99,16 +104,19 @@ public class CometApiService {
 
         requestBody.put("contents", List.of(content));
 
-        // ДЛЯ ПРОСТОЙ ГЕНЕРАЦИИ - добавляем aspectRatio и imageSize (качество)
+        /* ДЛЯ ПРОСТОЙ ГЕНЕРАЦИИ - добавляем aspectRatio и imageSize (качество)*/
+
         Map<String, Object> generationConfig = new HashMap<>();
         Map<String, Object> imageConfig = new HashMap<>();
 
-        // КОНВЕРТИРУЕМ и передаем aspectRatio
+        /* КОНВЕРТИРУЕМ и передаем aspectRatio*/
+
         String geminiAspectRatio = convertAspectRatio(config.getAspectRatio());
         imageConfig.put("aspectRatio", geminiAspectRatio);
 
-        // ★ ВАЖНО: передаем качество (imageSize вместо resolution)
-        // Поддерживаемые значения: "1K", "2K", "4K"
+        /* ★ ВАЖНО: передаем качество (imageSize вместо resolution)
+         Поддерживаемые значения: "1K", "2K", "4K"*/
+
         imageConfig.put("imageSize", config.getResolution());
 
         generationConfig.put("imageConfig", imageConfig);
@@ -129,10 +137,11 @@ public class CometApiService {
 
         List<Map<String, Object>> parts = new ArrayList<>();
 
-        // inline_data (snake_case) для совместимости с CometAPI
+        /* inline_data (snake_case) для совместимости с CometAPI*/
+
         parts.add(Map.of(
                 "inline_data", Map.of(
-                        "mime_type", "image/jpeg", // snake_case
+                        "mime_type", "image/jpeg", /* snake_case*/
                         "data", base64Image
                 )
         ));
@@ -145,15 +154,18 @@ public class CometApiService {
 
         requestBody.put("contents", List.of(content));
 
-        // ДЛЯ РЕДАКТИРОВАНИЯ тоже передаем aspectRatio и imageSize
+        /* ДЛЯ РЕДАКТИРОВАНИЯ тоже передаем aspectRatio и imageSize*/
+
         Map<String, Object> generationConfig = new HashMap<>();
         Map<String, Object> imageConfig = new HashMap<>();
 
-        // КОНВЕРТИРУЕМ и передаем aspectRatio
+        /* КОНВЕРТИРУЕМ и передаем aspectRatio*/
+
         String geminiAspectRatio = convertAspectRatio(config.getAspectRatio());
         imageConfig.put("aspectRatio", geminiAspectRatio);
 
-        // ★ ВАЖНО: передаем качество (imageSize вместо resolution)
+        /* ★ ВАЖНО: передаем качество (imageSize вместо resolution)*/
+
         imageConfig.put("imageSize", config.getResolution());
 
         generationConfig.put("imageConfig", imageConfig);
@@ -178,7 +190,9 @@ public class CometApiService {
             }
 
             for (var part : candidate.getContent().getParts()) {
-                // Проверяем оба варианта
+
+                /* Проверяем оба варианта*/
+
                 CometApiResponse.InlineData data = part.getInlineData() != null ?
                         part.getInlineData() : part.getInline_data();
 
@@ -195,26 +209,36 @@ public class CometApiService {
         }
     }
 
-    // Добавьте этот метод если нужно конвертировать ваши настройки в формат Gemini
+    /* Добавьте этот метод если нужно конвертировать ваши настройки в формат Gemini*/
+
     private String convertAspectRatio(String userAspectRatio) {
         if (userAspectRatio == null) return "1:1";
 
-        // Поддерживаемые значения Nano Banana Pro (Gemini 3 Pro Image)[citation:4][citation:10]
+        /* Поддерживаемые значения Nano Banana Pro (Gemini 3 Pro Image)[citation:4][citation:10]*/
+
         return switch (userAspectRatio) {
-            // Квадрат
+
+            /* Квадрат*/
+
             case "1:1" -> "1:1";
-            // Альбомные (ландшафт)
+
+            /* Альбомные (ландшафт)*/
+
             case "21:9" -> "21:9";
             case "16:9" -> "16:9";
             case "4:3" -> "4:3";
             case "3:2" -> "3:2";
             case "5:4" -> "5:4";
-            // Портретные
+
+            /* Портретные*/
+
             case "9:16" -> "9:16";
             case "3:4" -> "3:4";
             case "2:3" -> "2:3";
             case "4:5" -> "4:5";
-            // По умолчанию используем квадрат
+
+            /* По умолчанию используем квадрат*/
+
             default -> "1:1";
         };
     }
@@ -226,18 +250,21 @@ public class CometApiService {
         try {
             log.info("Запрос на слияние {} изображений через CometAPI", images.size());
 
-            // Формируем тело запроса
+            /* Формируем тело запроса*/
+
             JSONObject requestBody = new JSONObject();
             JSONArray contents = new JSONArray();
             JSONObject content = new JSONObject();
             JSONArray parts = new JSONArray();
 
-            // Добавляем текстовый промпт
+            /* Добавляем текстовый промпт*/
+
             JSONObject textPart = new JSONObject();
             textPart.put("text", prompt);
             parts.put(textPart);
 
-            // Добавляем все изображения
+            /* Добавляем все изображения*/
+
             for (int i = 0; i < images.size(); i++) {
                 byte[] image = images.get(i);
                 JSONObject imagePart = new JSONObject();
@@ -254,7 +281,8 @@ public class CometApiService {
             contents.put(content);
             requestBody.put("contents", contents);
 
-            // Добавляем конфигурацию генерации
+            /* Добавляем конфигурацию генерации*/
+
             JSONObject generationConfig = new JSONObject();
             JSONArray modalities = new JSONArray();
             modalities.put("IMAGE");
@@ -269,7 +297,8 @@ public class CometApiService {
 
             String requestBodyStr = requestBody.toString();
 
-            // Отправляем запрос
+            /* Отправляем запрос*/
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
@@ -277,13 +306,14 @@ public class CometApiService {
             HttpEntity<String> entity = new HttpEntity<>(requestBodyStr, headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    API_URL,                                                                     //???
+                    API_URL,                                                                     /* ПРОВЕРИТЬ АДРЕС ???*/
                     HttpMethod.POST,
                     entity,
                     String.class
             );
 
-            // Обработка ответа
+            /* Обработка ответа*/
+
             if (response.getStatusCode() == HttpStatus.OK) {
                 JSONObject jsonResponse = new JSONObject(response.getBody());
                 JSONArray candidates = jsonResponse.getJSONArray("candidates");

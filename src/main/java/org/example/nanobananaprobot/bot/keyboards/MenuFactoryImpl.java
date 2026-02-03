@@ -94,31 +94,37 @@ public class MenuFactoryImpl implements MenuFactory {
         List<KeyboardRow> rows = new ArrayList<>();
 
         /* ПЕРВАЯ СТРОЧКА: Основная генерация */
+
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
-        row1.add(new KeyboardButton("🖼️ Объединить изображения"));  // НОВАЯ КНОПКА
+        row1.add(new KeyboardButton("🖼️ Объединить изображения"));  /* НОВАЯ КНОПКА*/
 
         /* ВТОРАЯ СТРОЧКА: Дополнительные функции */
+
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("✏️ Редактировать изображение"));  // НОВАЯ КНОПКА
+        row2.add(new KeyboardButton("✏️ Редактировать изображение"));  /* НОВАЯ КНОПКА*/
         row2.add(new KeyboardButton("🎥 Сгенерировать видео"));
 
         /* ТРЕТЬЯ СТРОЧКА: Покупки и баланс */
+
         KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("⚙️ Настройки"));           // НОВАЯ КНОПКА
+        row3.add(new KeyboardButton("⚙️ Настройки"));           /* НОВАЯ КНОПКА*/
         row3.add(new KeyboardButton("🛒 Купить генерации"));
 
         /* ЧЕТВЕРТАЯ СТРОЧКА: Информация */
+
         KeyboardRow row4 = new KeyboardRow();
         row4.add(new KeyboardButton("📊 Мой баланс"));
         row4.add(new KeyboardButton("📋 Информация"));
 
         /* ПЯТАЯ СТРОЧКА: Выход */
+
         KeyboardRow row5 = new KeyboardRow();
         row5.add(new KeyboardButton("📞 Контакты"));
         row5.add(new KeyboardButton("🏠 Главное меню"));
 
         /* ШЕСТАЯ СТРОЧКА: Выход */
+
         KeyboardRow row6 = new KeyboardRow();
         row6.add(new KeyboardButton("❌ Выйти"));
 
@@ -213,6 +219,7 @@ public class MenuFactoryImpl implements MenuFactory {
     }
 
     /* ДОБАВЛЯЕМ НОВЫЙ МЕТОД ДЛЯ СТАТИСТИКИ*/
+
     @Override
     public SendMessage createStatsMenu(Long chatId) {
         User user = userService.findByTelegramChatId(chatId);
@@ -222,6 +229,7 @@ public class MenuFactoryImpl implements MenuFactory {
             stats += "👤 Логин: " + user.getUsername() + "\n";
 
             /* Получаем баланс из нового сервиса*/
+
             int tokensBalance = balanceService.getTokensBalance(user.getId());
 
             stats += "💰 Баланс токенов: " + tokensBalance + "\n";
@@ -254,7 +262,9 @@ public class MenuFactoryImpl implements MenuFactory {
     }
 
     private String getSubscriptionStatus(String username) {
+
         /* Заменяем на получение баланса*/
+
         User user = userService.findUserByUsername(username);
         if (user == null) return "❌ Пользователь не найден";
 
@@ -286,6 +296,7 @@ public class MenuFactoryImpl implements MenuFactory {
         List<KeyboardRow> rows = new ArrayList<>();
 
         /* Каждый пакет в отдельной строке*/
+
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("3 генерации - 39₽"));
 
@@ -389,7 +400,8 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        // Пакеты токенов
+        /* Пакеты токенов*/
+
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("5 токенов - 25₽"));
         row1.add(new KeyboardButton("10 токенов - 50₽"));

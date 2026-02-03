@@ -9,7 +9,7 @@ public class HiggsfieldStatusResponse {
     @JsonProperty("request_id")
     private String requestId;
 
-    private String status; // "queued", "processing", "completed", "failed"
+    private String status; /* "queued", "processing", "completed", "failed"*/
 
     @JsonProperty("status_url")
     private String statusUrl;
@@ -29,4 +29,5 @@ public class HiggsfieldStatusResponse {
     public static class VideoData {
         private String url;
     }
+
 }
