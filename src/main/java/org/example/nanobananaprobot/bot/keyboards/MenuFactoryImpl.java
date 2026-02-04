@@ -50,6 +50,7 @@ public class MenuFactoryImpl implements MenuFactory {
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("📝 Зарегистрироваться"));
         row1.add(new KeyboardButton("🔑 Войти"));
+        row1.add(new KeyboardButton("🏠 Старт"));
 
         KeyboardRow row2 = new KeyboardRow();
         row2.add(new KeyboardButton("📋 Информация"));

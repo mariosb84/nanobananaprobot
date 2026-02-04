@@ -56,6 +56,14 @@ public class PaymentAutoCheckService {
 
     private void checkPackagePayment(String paymentId) {
         try {
+
+            /* ПРОВЕРИТЬ СНАЧАЛА - ЕЩЕ АКТИВЕН ЛИ ПЛАТЕЖ?*/
+
+            if (!packagePayments.containsKey(paymentId)) {
+                /* Платеж уже обработан, можно выйти*/
+                return;
+            }
+
             var paymentStatus = yooKassaClient.getPayment(paymentId);
             log.debug("Package check - Payment: {}, Status: {}", paymentId, paymentStatus.getStatus());
 

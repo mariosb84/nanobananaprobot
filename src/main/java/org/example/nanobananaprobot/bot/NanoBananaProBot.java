@@ -198,10 +198,15 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
                 KeyboardRow cancelRow = new KeyboardRow();
                 cancelRow.add(new KeyboardButton("❌ Отмена слияния"));
 
+                /* КНОПКА "ГЛАВНОЕ МЕНЮ"*/
+                KeyboardRow mainMenuRow = new KeyboardRow();
+                mainMenuRow.add(new KeyboardButton("🏠 Главное меню"));
+
                 if (!buttonRow.isEmpty()) {
                     rows.add(buttonRow);
                 }
                 rows.add(cancelRow);
+                rows.add(mainMenuRow); /* ← ДОБАВИТЬ ЭТУ СТРОЧКУ*/
 
                 keyboard.setKeyboard(rows);
                 responseMessage.setReplyMarkup(keyboard);
