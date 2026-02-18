@@ -841,6 +841,8 @@ public class MessageHandlerImpl implements MessageHandler {
             case "📋 Информация" -> sendInfoMenu(chatId);
             case "📞 Контакты" -> sendContactsMenu(chatId);
             case "❌ Выйти" -> authService.handleLogout(chatId);
+            case "📋 Примеры промптов" ->
+                    telegramService.sendMessage(menuFactory.createPromptsExamplesMenu(chatId));
             default -> telegramService.sendMessage(chatId, "Неизвестная команда");
         }
     }
@@ -890,6 +892,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 text.equals("🖼️ Объединить изображения") ||  /* Новая команда*/
                 text.equals("❌ Выйти") ||
                 text.equals("📝 Зарегистрироваться") ||  /* ← ДОБАВИТЬ!*/
+                text.equals("📋 Примеры промптов") ||
                 text.equals("🔑 Войти");
     }
 
