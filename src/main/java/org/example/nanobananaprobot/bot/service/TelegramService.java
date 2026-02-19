@@ -93,7 +93,7 @@ public class TelegramService extends DefaultAbsSender {
      */
     public void sendDocument(Long chatId, byte[] fileBytes, String fileName, String caption) {
         int maxRetries = 3;
-        int retryDelay = 2000; // 2 секунды между попытками
+        int retryDelay = 2000; /* 2 секунды между попытками*/
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {

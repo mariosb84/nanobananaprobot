@@ -213,6 +213,22 @@ public class MessageHandlerImpl implements MessageHandler {
                 return true;
 
             case UserStateManager.STATE_WAITING_MERGE_PROMPT:
+
+                /* Добавить проверку на системные кнопки*/
+
+                if ("❌ Отмена слияния".equals(text) || "🏠 Главное меню".equals(text)) {
+                    stateManager.clearMultipleImages(chatId);
+                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                    if ("🏠 Главное меню".equals(text)) {
+                        sendMainMenu(chatId);
+                    } else {
+                        telegramService.sendMessage(chatId, "❌ Слияние отменено.");
+                        sendMainMenu(chatId);
+                    }
+                    return true;
+                }
+                /* Если не системная кнопка - обрабатываем как промпт*/
+
                 handleMergePromptInput(chatId, text);
                 return true;
 
@@ -272,8 +288,9 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Новый метод для обработки состояния загрузки нескольких фото
      */
-    private boolean handleMultipleImagesUploadState(Long chatId, String text) {
-        /* Обработка кнопки "Все фото загружены"*/
+
+    /*private boolean handleMultipleImagesUploadState(Long chatId, String text) {
+        *//* Обработка кнопки "Все фото загружены"*//*
         if ("✅ Все фото загружены, ввести промпт".equals(text)) {
             List<byte[]> images = stateManager.getMultipleImages(chatId);
             if (images != null && images.size() >= 2) {
@@ -298,7 +315,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return true;
         }
 
-        /* Обработка кнопки "Отмена"*/
+        *//* Обработка кнопки "Отмена"*//*
 
         if ("❌ Отмена слияния".equals(text)) {
             stateManager.clearMultipleImages(chatId);
@@ -308,8 +325,8 @@ public class MessageHandlerImpl implements MessageHandler {
             return true;
         }
 
-        /* Если пользователь отправляет текст (не фото и не кнопку)
-         в состоянии ожидания фото - говорим ему что делать*/
+        *//* Если пользователь отправляет текст (не фото и не кнопку)
+         в состоянии ожидания фото - говорим ему что делать*//*
         if (!isMenuCommand(text)) {
             telegramService.sendMessage(chatId,
                     "📸 Я ожидаю загрузку фото для слияния.\n\n" +
@@ -321,13 +338,76 @@ public class MessageHandlerImpl implements MessageHandler {
             return true;
         }
 
-        /* Добавить проверку для кнопки "🏠 Главное меню":*/
+        *//* Добавить проверку для кнопки "🏠 Главное меню":*//*
 
         if ("🏠 Главное меню".equals(text)) {
             stateManager.clearMultipleImages(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
             sendMainMenu(chatId);
             telegramService.sendMessage(chatId, "🏠 Возврат в главное меню.");
+            return true;
+        }
+
+        return false;
+    }*/
+
+    private boolean handleMultipleImagesUploadState(Long chatId, String text) {
+
+        /* Сначала проверяем системные кнопки выхода*/
+
+        if ("🏠 Главное меню".equals(text)) {
+            stateManager.clearMultipleImages(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            sendMainMenu(chatId);
+            telegramService.sendMessage(chatId, "🏠 Возврат в главное меню.");
+            return true;
+        }
+
+        if ("❌ Отмена слияния".equals(text)) {
+            stateManager.clearMultipleImages(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            sendMainMenu(chatId);
+            telegramService.sendMessage(chatId, "❌ Слияние отменено.");
+            return true;
+        }
+
+        /* Потом проверяем кнопку продолжения*/
+
+        if ("✅ Все фото загружены, ввести промпт".equals(text)) {
+            List<byte[]> images = stateManager.getMultipleImages(chatId);
+            if (images != null && images.size() >= 2) {
+                ImageConfig config = stateManager.getOrCreateConfig(chatId);
+                config.setMode("merge");
+                int tokensNeeded = costCalculatorService.calculateMergeTokens(config, images.size());
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MERGE_PROMPT);
+                telegramService.sendMessage(chatId,
+                        "✏️ Отлично! Загружено " + images.size() + " фото.\n\n" +
+                                "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                                "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
+                                "Теперь введите описание для слияния:\n" +
+                                "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки ананас'\n\n" +
+                                "⚠️ *Для отмены используйте /start*"
+                );
+            } else {
+                telegramService.sendMessage(chatId,
+                        "❌ Нужно минимум 2 фото для слияния.\n" +
+                                "Отправьте еще фото или нажмите /merge для начала заново."
+                );
+            }
+            return true;
+        }
+
+        /* Если пользователь отправляет текст (не фото и не кнопку)*/
+
+        if (!isMenuCommand(text)) {
+            telegramService.sendMessage(chatId,
+                    "📸 Я ожидаю загрузку фото для слияния.\n\n" +
+                            "Отправьте фото или используйте кнопки:\n" +
+                            "• ✅ Все фото загружены, ввести промпт\n" +
+                            "• ❌ Отмена слияния\n" +
+                            "• 🏠 Главное меню\n\n" +
+                            "Или отправьте еще фото..."
+            );
             return true;
         }
 
@@ -1071,6 +1151,42 @@ public class MessageHandlerImpl implements MessageHandler {
     /* Новый метод для обработки промпта слияния*/
 
     private void handleMergePromptInput(Long chatId, String prompt) {
+
+        /* Защита от дурака - если вдруг пришла системная кнопка*/
+
+        if ("❌ Отмена слияния".equals(prompt) || "🏠 Главное меню".equals(prompt)) {
+            stateManager.clearMultipleImages(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            if ("🏠 Главное меню".equals(prompt)) {
+                sendMainMenu(chatId);
+            } else {
+                telegramService.sendMessage(chatId, "❌ Слияние отменено.");
+                sendMainMenu(chatId);
+            }
+            return;
+        }
+
+        /* НОВАЯ ЗАЩИТА: если пришла кнопка "ввести промпт" как текст*/
+
+        if ("✅ Все фото загружены, ввести промпт".equals(prompt)) {
+            telegramService.sendMessage(chatId,
+                    "❌ Нельзя использовать кнопку как промпт!\n\n" +
+                            "📝 Пожалуйста, введите текстовое описание того, как объединить фото.\n" +
+                            "Пример: 'Создай коллаж из этих фото в стиле ретро'"
+            );
+            return; /* Остаёмся в том же состоянии, ждём правильный ввод*/
+        }
+
+        /* Проверка на пустой промпт или слишком короткий*/
+
+        if (prompt == null || prompt.trim().length() < 3) {
+            telegramService.sendMessage(chatId,
+                    "❌ Промпт должен содержать минимум 3 символа.\n" +
+                            "Пожалуйста, введите описание для слияния:"
+            );
+            return;
+        }
+
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
             telegramService.sendMessage(chatId, "❌ Пользователь не найден");
