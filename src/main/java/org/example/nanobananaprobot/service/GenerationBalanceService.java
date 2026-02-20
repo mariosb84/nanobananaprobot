@@ -124,6 +124,10 @@ public class GenerationBalanceService {
      */
     public boolean canGenerateImage(Long userId, ImageConfig config) {
         int requiredTokens = costCalculatorService.calculateTokens(config);
+        int userBalance = getTokensBalance(userId);
+
+        log.info("canGenerateImage - userId: {}, mode: {}, resolution: {}, required: {}, balance: {}",
+                userId, config.getMode(), config.getResolution(), requiredTokens, userBalance);
         return hasEnoughTokens(userId, requiredTokens);
     }
 

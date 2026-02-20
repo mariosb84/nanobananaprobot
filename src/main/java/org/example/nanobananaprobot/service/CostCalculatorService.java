@@ -1,6 +1,8 @@
 package org.example.nanobananaprobot.service;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +33,8 @@ public class CostCalculatorService {
 
     private static final int TOKENS_PER_EXTRA_IMAGE = 1; /* +5 ₽ за каждое доп. фото*/
 
+    private static final Logger log = LoggerFactory.getLogger(CostCalculatorService.class);
+
     /* ========== ОСНОВНЫЕ МЕТОДЫ РАСЧЁТА ==========*/
 
     /**
@@ -38,14 +42,21 @@ public class CostCalculatorService {
      */
     public int calculateTokens(ImageConfig config) {
         if (config == null) {
-            return TOKENS_GENERATE_1K; /* Значение по умолчанию*/
+            log.info("calculateTokens: config is null, returning default 3");
+            return TOKENS_GENERATE_1K;
         }
 
-        return switch (config.getMode()) {
+        log.info("calculateTokens: mode={}, resolution={}",
+                config.getMode(), config.getResolution());
+
+        int result = switch (config.getMode()) {
             case "edit" -> calculateEditTokens(config.getResolution());
             case "merge" -> calculateMergeTokens(config, 1);
             default -> calculateGenerateTokens(config.getResolution());
         };
+
+        log.info("calculateTokens: result={} tokens", result);
+        return result;
     }
 
     /**

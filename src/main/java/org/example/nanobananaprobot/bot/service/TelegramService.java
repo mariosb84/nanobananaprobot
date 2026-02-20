@@ -21,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 @Slf4j
@@ -254,6 +255,34 @@ public class TelegramService extends DefaultAbsSender {
         writer.dispose();
 
         return baos.toByteArray();
+    }
+
+    public void sendPromptExample(Long chatId, String imageName, String caption) {
+        try {
+            InputStream inputStream = getClass().getClassLoader()
+                    .getResourceAsStream("examples/" + imageName);
+
+            if (inputStream == null) {
+                log.error("Image not found: examples/{}", imageName);
+                sendMessage(chatId, caption);
+                return;
+            }
+
+            InputFile photo = new InputFile(inputStream, imageName);
+
+            SendPhoto sendPhoto = new SendPhoto();
+            sendPhoto.setChatId(chatId.toString());
+            sendPhoto.setPhoto(photo);
+            sendPhoto.setCaption(caption);
+            sendPhoto.setParseMode("Markdown");
+
+            execute(sendPhoto);
+            inputStream.close();
+
+        } catch (Exception e) {
+            log.error("Error sending prompt example: {}", e.getMessage());
+            sendMessage(chatId, caption);
+        }
     }
 
 }
