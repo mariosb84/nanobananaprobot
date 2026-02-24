@@ -32,37 +32,39 @@ public class GenerationService {
             return;
         }
 
-        /* 1. Проверяем баланс*/
+        /* 1. Получаем настройки пользователя*/
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        int requiredTokens = costCalculatorService.calculateTokens(config);
 
-        if (balanceService.getImageBalance(user.getId()) <= 0) {
+        /* 2. Проверяем баланс токенов*/
+        if (!balanceService.hasEnoughTokens(user.getId(), requiredTokens)) {
             telegramService.sendMessage(chatId,
-                    "❌ Недостаточно генераций!\n\n" +
-                            "🎨 Баланс: 0 изображений\n" +
-                            "🛒 Купите пакет генераций в магазине"
+                    "❌ Недостаточно токенов!\n\n" +
+                            "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
+                            "💰 Требуется: " + requiredTokens + " токенов (" + (requiredTokens * 5) + " ₽)\n" +
+                            "🛒 Купите токены в магазине"
             );
             return;
         }
 
-        /* 2. Списываем баланс*/
-
-        boolean used = balanceService.useImageGeneration(user.getId());
+        /* 3. Списываем токены*/
+        boolean used = balanceService.useImageGeneration(user.getId(), config);
         if (!used) {
-            telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
+            telegramService.sendMessage(chatId, "❌ Ошибка списания токенов");
             return;
         }
 
-        /* 3. Меняем состояние и уведомляем пользователя*/
-
+        /* 4. Меняем состояние и уведомляем пользователя*/
         stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
 
         telegramService.sendMessage(chatId,
                 "🎨 Генерирую изображение...\n\n" +
                         "📝 Промпт: _" + prompt + "_\n" +
+                        "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                         "⏱️ Это займет ~от 20 до 59 секунд"
         );
 
-        /* 4. Запускаем асинхронную генерацию*/
-
+        /* 5. Запускаем асинхронную генерацию*/
         startAsyncGeneration(chatId, user.getId(), prompt);
     }
 

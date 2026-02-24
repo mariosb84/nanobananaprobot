@@ -142,17 +142,39 @@ public class TelegramService extends DefaultAbsSender {
     }
 
     /**
-     * ★ УМНЫЙ МЕТОД с fallback: пробуем документ, если не получается - сжимаем
+     * ★ УМНЫЙ МЕТОД: 4K всегда как документ, остальное по ситуации
      */
     public void sendImageSmart(Long chatId, byte[] imageBytes, String fileName, ImageConfig config) {
         long sizeMB = imageBytes.length / 1024 / 1024;
+
+        /* 4K всегда отправляем как документ (Telegram не сжимает)*/
+
+        if ("4K".equals(config.getResolution())) {
+            log.info("4K изображение ({} MB) - отправляю как документ", sizeMB);
+
+            String caption = String.format(
+                    "🎨 %s | %s\n📦 Размер: %d MB\n🔗 Оригинальное 4K качество",
+                    config.getAspectRatio(),
+                    config.getResolution(),
+                    sizeMB
+            );
+
+            String docName = String.format("4k_%s_%s.jpg",
+                    config.getAspectRatio().replace(":", "x"),
+                    System.currentTimeMillis());
+
+            sendDocument(chatId, imageBytes, docName, caption);
+            return;
+        }
+
+        /* Для 1K и 2K - старая логика*/
 
         if (imageBytes.length > 10 * 1024 * 1024) { // >10MB
             log.info("Изображение слишком большое для фото ({} MB)", sizeMB);
 
             try {
 
-                /* 1. Пробуем отправить как документ*/
+                /* Пробуем отправить как документ*/
 
                 String caption = String.format(
                         "🎨 %s | %s\n📦 Размер: %d MB\n🔗 Отправлено как документ",
@@ -172,16 +194,14 @@ public class TelegramService extends DefaultAbsSender {
 
                 try {
 
-                    /* 2. Fallback: сжимаем до 9.5MB и отправляем как фото*/
+                    /* Fallback: сжимаем*/
 
-                    long targetSize = 9_500_000L; /* 9.5 MB в байтах*/
+                    long targetSize = 9_500_000L;
                     byte[] compressed = smartCompressToSize(imageBytes, targetSize);
                     log.info("Сжато до {} MB", compressed.length / 1024 / 1024);
 
-                    /* ★ Исправляем: вызываем свой же метод sendMessage*/
-
                     sendMessage(chatId,
-                            "⚠️ 4K изображение было сжато для отправки в Telegram\n" +
+                            "⚠️ Изображение было сжато для отправки в Telegram\n" +
                                     "🎨 " + config.getAspectRatio() + " | " + config.getResolution()
                     );
 

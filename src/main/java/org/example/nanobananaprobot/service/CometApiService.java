@@ -1,5 +1,6 @@
 package org.example.nanobananaprobot.service;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.nanobananaprobot.domain.dto.CometApiResponse;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
@@ -178,6 +179,15 @@ public class CometApiService {
 
     private byte[] parseResponse(String responseBody) {
         try {
+
+            /* Добавь эти 3 строки:*/
+
+            objectMapper.getFactory()
+                    .setStreamReadConstraints(StreamReadConstraints.builder()
+                            .maxStringLength(50_000_000) /* Увеличиваем до 50 млн*/
+                            .build()
+                    );
+
             CometApiResponse response = objectMapper.readValue(responseBody, CometApiResponse.class);
 
             if (response.getCandidates() == null || response.getCandidates().isEmpty()) {
@@ -192,7 +202,6 @@ public class CometApiService {
             for (var part : candidate.getContent().getParts()) {
 
                 /* Проверяем оба варианта*/
-
                 CometApiResponse.InlineData data = part.getInlineData() != null ?
                         part.getInlineData() : part.getInline_data();
 
