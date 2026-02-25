@@ -8,9 +8,12 @@ import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.imageio.IIOImage;
@@ -22,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -68,9 +72,45 @@ public class TelegramService extends DefaultAbsSender {
         }
     }
 
-    public void sendMediaGroup(Long chatId, List<byte[]> imagesBytes, List<String> fileNames) {
+    /**
+     * Отправка медиагруппы из картинок)
+     */
+    public void sendMediaGroup(Long chatId, List<byte[]> imagesBytes, List<String> fileNames, List<String> captions) {
+        List<InputMedia> mediaList = new ArrayList<>();
+        List<java.io.File> tempFiles = new ArrayList<>();
 
-        /* Реализация для отправки альбома*/
+        try {
+            for (int i = 0; i < imagesBytes.size(); i++) {
+                java.io.File tempFile = java.io.File.createTempFile("img_", ".jpg");
+                tempFile.deleteOnExit();
+                java.nio.file.Files.write(tempFile.toPath(), imagesBytes.get(i));
+                tempFiles.add(tempFile);
+
+                InputMediaPhoto media = new InputMediaPhoto();
+                media.setMedia(String.valueOf(new InputFile(tempFile)));  // ← InputFile
+                media.setParseMode("Markdown");
+
+                if (i < captions.size() && captions.get(i) != null) {
+                    media.setCaption(captions.get(i));
+                }
+
+                mediaList.add(media);
+            }
+
+            SendMediaGroup sendMediaGroup = new SendMediaGroup();
+            sendMediaGroup.setChatId(chatId.toString());
+            sendMediaGroup.setMedias(mediaList);
+
+            execute(sendMediaGroup);
+            log.info("✅ Отправлена медиа-группа из {} фото", imagesBytes.size());
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка отправки медиа-группы", e);
+        } finally {
+            for (java.io.File f : tempFiles) {
+                f.delete();
+            }
+        }
     }
 
     /**
