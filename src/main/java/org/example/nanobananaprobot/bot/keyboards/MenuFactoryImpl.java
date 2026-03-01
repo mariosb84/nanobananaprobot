@@ -241,9 +241,10 @@ public class MenuFactoryImpl implements MenuFactory {
             stats += "💰 Баланс токенов: " + tokensBalance + "\n";
             stats += "💵 Стоимость: " + (tokensBalance * 5) + " ₽\n\n";
 
-            stats += "*Генерации в этом месяце:*\n";
-            stats += "🎨 Изображений: 0\n";
-            stats += "🎥 Видео: 0\n";
+            /*stats += "*Генерации в этом месяце:*\n";*/      /*пока убираем эту статистику*/
+            /*stats += "🎨 Изображений: 0\n";*/
+            /*stats += "🎥 Видео: 0\n";*/
+
         } else {
             stats += "❌ Данные не найдены";
         }
