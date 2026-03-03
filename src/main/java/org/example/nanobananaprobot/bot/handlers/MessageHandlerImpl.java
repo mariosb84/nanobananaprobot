@@ -105,7 +105,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
         } catch (Exception e) {
             log.error("Error handling message: {}", e.getMessage());
-            log.error("Error handling message:", e); // <-- ВАЖНО: передать сам объект 'e'
+            log.error("Error handling message:", e); /* <-- ВАЖНО: передать сам объект 'e'*/
             telegramService.sendMessage(chatId, "❌ Произошла ошибка. Попробуйте еще раз.");
         }
     }
@@ -386,7 +386,7 @@ public class MessageHandlerImpl implements MessageHandler {
                                 "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
                                 "Теперь введите описание для слияния:\n" +
                                 "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки ананас'\n\n" +
-                                "⚠️ *Для отмены используйте /start*"
+                                "⚠️ *Для отмены используйте 🏠 Главное меню или /start*"
                 );
             } else {
                 telegramService.sendMessage(chatId,
@@ -707,6 +707,8 @@ public class MessageHandlerImpl implements MessageHandler {
                 text.equals("🔙 Назад");
     }
 
+    /*СТАРЫЙ МЕТОД*/
+
     private void handleImagePackageSelection(Long chatId, String text) {
         String packageType = "image";
         String count;
@@ -773,6 +775,8 @@ public class MessageHandlerImpl implements MessageHandler {
         paymentHandler.handlePackagePurchase(chatId, packageType, count);
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
+
+    /*СТАРЫЙ МЕТОД*/
 
     private void handleVideoPackageSelection(Long chatId, String text) {
         String packageType = "video";
@@ -928,6 +932,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /* НОВЫЙ МЕТОД: Обработка команды генерации с учетом настроек*/
+
     private void handleImageGenerationCommand(Long chatId, User user) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
         config.setMode("generate"); /* ← ДОБАВИТЬ!*/
@@ -977,6 +982,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /* НОВЫЙ МЕТОД: Асинхронное редактирование изображения*/
+
     @Async
     public void startAsyncImageEdit(Long chatId, Long userId, byte[] sourceImage,
                                     String prompt, ImageConfig config) {

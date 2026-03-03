@@ -147,6 +147,8 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
+    /*СТАРЫЙ МЕТОД*/
+
     @Override
     public SendMessage createSubscriptionMenu(Long chatId) {
         SendMessage message = new SendMessage();
@@ -279,6 +281,8 @@ public class MenuFactoryImpl implements MenuFactory {
         return "💰 Токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)";
     }
 
+    /*СТАРЫЙ МЕТОД*/
+
     @Override
     public SendMessage createImagePackagesMenu(Long chatId) {
         SendMessage message = new SendMessage();
@@ -334,6 +338,8 @@ public class MenuFactoryImpl implements MenuFactory {
 
         return message;
     }
+
+    /*СТАРЫЙ МЕТОД*/
 
     @Override
     public SendMessage createVideoPackagesMenu(Long chatId) {

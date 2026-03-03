@@ -87,7 +87,7 @@ public class TelegramService extends DefaultAbsSender {
                 tempFiles.add(tempFile);
 
                 InputMediaPhoto media = new InputMediaPhoto();
-                media.setMedia(String.valueOf(new InputFile(tempFile)));  // ← InputFile
+                media.setMedia(String.valueOf(new InputFile(tempFile)));  /* ← InputFile*/
                 media.setParseMode("Markdown");
 
                 if (i < captions.size() && captions.get(i) != null) {
