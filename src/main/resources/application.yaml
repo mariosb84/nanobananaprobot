@@ -52,8 +52,8 @@ webdrivermanager:
 # YooKassa Payment System
 yookassa:
   # real-shop:
-  #shop-id: ${YOOKASSA_SHOP_ID:1180332}
-  #secret-key: ${YOOKASSA_SECRET_KEY:live_TwRr2APY3ngv0M-aBnhAewcpSk8oPyltkLGRg_Pgh-g}
+  #shop-id: ${YOOKASSA_SHOP_ID:1267029}
+  #secret-key: ${YOOKASSA_SECRET_KEY:live_tYv7j1dolfoqX9_xKci2yCflXYAfC5atcSyHJ0AotK4}
   #test-mode: false
   # test-shop:
   shop-id: ${YOOKASSA_SHOP_ID:1181320}
