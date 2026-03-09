@@ -80,17 +80,12 @@ public class MenuFactoryImpl implements MenuFactory {
         String status = "";
         if (user != null) {
             int tokensBalance = balanceService.getTokensBalance(user.getId());
-            status = "🎨 Баланс токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)\n\n";
+            status = "🎨 *Баланс:* " + tokensBalance + " токенов (" + (tokensBalance * 5) + " ₽)\n\n";
         }
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-
-        if (!afterGeneration) {
-            message.setText("🏠 *Главное меню*\n\n" + status + "Выберите действие:");
-        } else {
-            message.setText("✅ *Генерация завершена!*\n\n" + status + "Выберите следующее действие:");
-        }
+        message.setText(status + "👇 *Выбери действие:*");
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -98,55 +93,29 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        /* ПЕРВАЯ СТРОЧКА: Основная генерация */
-
+        // Первая строка — самое главное
         KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("🎨 Сгенерировать изображение"));
-        row1.add(new KeyboardButton("🖼️ Объединить изображения"));  /* НОВАЯ КНОПКА*/
+        row1.add(new KeyboardButton("🎨 Создать изображение"));
 
-        /* ВТОРАЯ СТРОЧКА: Дополнительные функции */
-
+        // Вторая строка — вспомогательное
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("✏️ Редактировать изображение"));  /* НОВАЯ КНОПКА*/
-        /*row2.add(new KeyboardButton("🎥 Сгенерировать видео"));*/  /*пока убираем видео*/
+        row2.add(new KeyboardButton("💰 Пополнить баланс"));
         row2.add(new KeyboardButton("📋 Примеры промптов"));
 
-        /* ТРЕТЬЯ СТРОЧКА: Покупки и баланс */
-
+        // Третья строка — настройки и инфо
         KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("⚙️ Настройки"));           /* НОВАЯ КНОПКА*/
-        row3.add(new KeyboardButton("🛒 Купить генерации"));
-
-        /* ЧЕТВЕРТАЯ СТРОЧКА: Информация */
-
-        KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("📊 Мой баланс"));
-        row4.add(new KeyboardButton("📋 Информация"));
-
-        /* ПЯТАЯ СТРОЧКА: Выход */
-
-        KeyboardRow row5 = new KeyboardRow();
-        row5.add(new KeyboardButton("📞 Контакты"));
-        row5.add(new KeyboardButton("🏠 Главное меню"));
-
-        /* ШЕСТАЯ СТРОЧКА: Выход */
-
-        KeyboardRow row6 = new KeyboardRow();
-        row6.add(new KeyboardButton("❌ Выйти"));
+        row3.add(new KeyboardButton("⚙️ Настройки"));
+        row3.add(new KeyboardButton("❓ Помощь"));
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
-        rows.add(row4);
-        rows.add(row5);
-        rows.add(row6);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
 
         return message;
     }
-
     /*СТАРЫЙ МЕТОД*/
 
     @Override

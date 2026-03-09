@@ -13,9 +13,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static org.example.nanobananaprobot.domain.model.Role.ROLE_USER;
@@ -195,6 +197,22 @@ public class UserServiceData implements UserService, UserDetailsService {
         User user = userRepository.findUserByUsername(username).get();
         user.setTelegramChatId(chatId);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public User findOrCreateByTelegramId(Long chatId) {
+        User user = findByTelegramChatId(chatId);
+        if (user != null) {
+            return user;
+        }
+
+        User newUser = new User();
+        newUser.setTelegramChatId(chatId);
+        newUser.setUsername("user_" + chatId);
+        newUser.setEmail(chatId + "@telegram.user");
+        newUser.setPassword(UUID.randomUUID().toString());
+
+        return userRepository.save(newUser);
     }
 
 }

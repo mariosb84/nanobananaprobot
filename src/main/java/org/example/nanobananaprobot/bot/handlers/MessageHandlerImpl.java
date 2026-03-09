@@ -20,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 
@@ -43,8 +44,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
     @Override
     public void handleTextMessage(Message message) {
-
-        /* 1. ПЕРЕНЕСИТЕ ЭТУ ПРОВЕРКУ В САМОЕ НАЧАЛО МЕТОДА*/
         if (message == null || message.getText() == null) {
             log.debug("Ignoring non-text message from chatId: {}",
                     message != null ? message.getChatId() : "N/A");
@@ -54,58 +53,33 @@ public class MessageHandlerImpl implements MessageHandler {
         Long chatId = message.getChatId();
         String text = message.getText();
 
-        /* 🔴 ПЕРЕМЕСТИТЕ try-catch БЛОК СЮДА - сразу после получения chatId и text*/
         try {
             String userState = stateManager.getUserState(chatId);
             log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
-            /* ДОБАВЛЯЕМ НОВЫЕ ГЛОБАЛЬНЫЕ КОМАНДЫ*/
+            // 1. Обрабатываем системные команды
             switch (text) {
-                case "/settings", "⚙️ Настройки" -> {
-                    handleSettingsCommand(chatId);
-                    return;
-                }
-                case "/edit", "✏️ Редактировать изображение" -> {
-                    handleEditCommand(chatId);
-                    return;
-                }
-
-                /* В методе handleTextMessage добавим кейс для /merge:*/
-                case "/merge", "🖼️ Объединить изображения" -> {
-                    handleMergeCommand(chatId);
-                    return;
-                }
-
-                /* ГЛОБАЛЬНЫЕ КОМАНДЫ*/
                 case "/start", "🏠 Старт" -> {
-                    handleStartCommand(chatId);
+                    handleStartCommand(chatId, message.getFrom());
                     return;
                 }
-
-                /* ГЛОБАЛЬНЫЕ КНОПКИ МЕНЮ*/
-                case "🔙 Назад", "🏠 Главное меню" -> {
-                    if (isUserAuthorized(chatId)) {
-                        sendMainMenu(chatId);
-                        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-                    } else {
-                        sendWelcomeMenu(chatId);
-                        stateManager.setUserState(chatId, UserStateManager.STATE_NONE);
-                    }
+                case "🔙 Назад" -> {
+                    sendMainMenu(chatId);
+                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                     return;
                 }
             }
 
-            /* Обработка состояний ввода*/
+            // 2. Обработка состояний ввода
             if (handleInputStates(chatId, text, userState)) {
                 return;
             }
 
-            /* Обработка команд*/
-            handleCommand(chatId, text);
+            // 3. Если не системная команда и не состояние — просто показываем меню
+            sendMainMenu(chatId);
 
         } catch (Exception e) {
-            log.error("Error handling message: {}", e.getMessage());
-            log.error("Error handling message:", e); /* <-- ВАЖНО: передать сам объект 'e'*/
+            log.error("Error handling message: {}", e.getMessage(), e);
             telegramService.sendMessage(chatId, "❌ Произошла ошибка. Попробуйте еще раз.");
         }
     }
@@ -288,69 +262,6 @@ public class MessageHandlerImpl implements MessageHandler {
     /**
      * Новый метод для обработки состояния загрузки нескольких фото
      */
-
-    /*private boolean handleMultipleImagesUploadState(Long chatId, String text) {
-        *//* Обработка кнопки "Все фото загружены"*//*
-        if ("✅ Все фото загружены, ввести промпт".equals(text)) {
-            List<byte[]> images = stateManager.getMultipleImages(chatId);
-            if (images != null && images.size() >= 2) {
-
-                ImageConfig config = stateManager.getOrCreateConfig(chatId);
-                config.setMode("merge");
-                int tokensNeeded = costCalculatorService.calculateMergeTokens(config, images.size());
-                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MERGE_PROMPT);
-                telegramService.sendMessage(chatId,
-                        "✏️ Отлично! Загружено " + images.size() + " фото.\n\n" +
-                                "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
-                                "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
-                                "Теперь введите описание для слияния:\n" +
-                                "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки ананас'"
-                );
-            } else {
-                telegramService.sendMessage(chatId,
-                        "❌ Нужно минимум 2 фото для слияния.\n" +
-                                "Отправьте еще фото или нажмите /merge для начала заново."
-                );
-            }
-            return true;
-        }
-
-        *//* Обработка кнопки "Отмена"*//*
-
-        if ("❌ Отмена слияния".equals(text)) {
-            stateManager.clearMultipleImages(chatId);
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            sendMainMenu(chatId);
-            telegramService.sendMessage(chatId, "❌ Слияние отменено.");
-            return true;
-        }
-
-        *//* Если пользователь отправляет текст (не фото и не кнопку)
-         в состоянии ожидания фото - говорим ему что делать*//*
-        if (!isMenuCommand(text)) {
-            telegramService.sendMessage(chatId,
-                    "📸 Я ожидаю загрузку фото для слияния.\n\n" +
-                            "Отправьте фото или используйте кнопки:\n" +
-                            "• ✅ Все фото загружены, ввести промпт\n" +
-                            "• ❌ Отмена слияния\n\n" +
-                            "Или отправьте еще фото..."
-            );
-            return true;
-        }
-
-        *//* Добавить проверку для кнопки "🏠 Главное меню":*//*
-
-        if ("🏠 Главное меню".equals(text)) {
-            stateManager.clearMultipleImages(chatId);
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            sendMainMenu(chatId);
-            telegramService.sendMessage(chatId, "🏠 Возврат в главное меню.");
-            return true;
-        }
-
-        return false;
-    }*/
-
     private boolean handleMultipleImagesUploadState(Long chatId, String text) {
 
         /* Сначала проверяем системные кнопки выхода*/
@@ -831,12 +742,12 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
-    private void handleCommand(Long chatId, String text) {
+    private void handleCommand(Long chatId, String text, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
 
         /*if (text.equals("/start") || text.equals("🏠 Старт")) {*/
 
         if ("/start".equals(text) || "🏠 Старт".equals(text)) {
-            handleStartCommand(chatId);
+            handleStartCommand(chatId, telegramUser);
             return;
         }
 
@@ -869,14 +780,24 @@ public class MessageHandlerImpl implements MessageHandler {
         }
     }
 
-    private void handleStartCommand(Long chatId) {
+    private void handleStartCommand(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
         stateManager.clearUserData(chatId);
 
-        if (isUserAuthorized(chatId)) {
-            sendMainMenu(chatId);
-        } else {
-            sendWelcomeMenu(chatId);
-        }
+        /* Создаём в БД заглушку (user_123456) — только для id и баланса*/
+        userService.findOrCreateByTelegramId(chatId);
+
+        /* Имя берём из Telegram и используем только здесь*/
+        String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
+
+        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+
+        telegramService.sendMessage(chatId,
+                "👋 *Привет, " + firstName + "!*\n\n" +
+                        "Я помогу тебе создавать крутые изображения с помощью AI\n\n" +
+                        "👇 *Просто нажми кнопку ниже и опиши, что хочешь получить*"
+        );
+
+        sendMainMenu(chatId);
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {
