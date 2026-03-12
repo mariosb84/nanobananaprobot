@@ -15,7 +15,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private final TelegramService telegramService;
     private final PaymentHandler paymentHandler;
 
-    @Override
+/*    @Override
     public void handleCallback(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
         Long chatId = callbackQuery.getMessage().getChatId();
@@ -26,13 +26,13 @@ public class CallbackHandlerImpl implements CallbackHandler {
             if (data.startsWith("check_payment_")) {
                 handlePaymentCheckCallback(callbackQuery, data);
             } else {
-                /* Для других колбэков (если будут)*/
+                *//* Для других колбэков (если будут)*//*
                 answerCallback(callbackQuery, "❌ Неизвестная команда");
             }
         } catch (Exception e) {
             log.error("Error handling callback: {}", e.getMessage());
         }
-    }
+    }*/
 
     private void handlePaymentCheckCallback(CallbackQuery callbackQuery, String data) {
         /* Сразу отвечаем на колбэк*/
@@ -57,6 +57,34 @@ public class CallbackHandlerImpl implements CallbackHandler {
         } catch (Exception e) {
             log.warn("Failed to answer callback: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public void handleCallback(CallbackQuery callbackQuery) {
+        String data = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChatId();
+
+        log.debug("Handling callback - ChatId: {}, Data: {}", chatId, data);
+
+        try {
+            if (data.startsWith("check_payment_")) {
+                handlePaymentCheckCallback(callbackQuery, data);
+            } else if ("start_generation".equals(data)) {  // ← добавить этот блок
+                handleStartGeneration(callbackQuery);
+            } else {
+                answerCallback(callbackQuery, "❌ Неизвестная команда");
+            }
+        } catch (Exception e) {
+            log.error("Error handling callback: {}", e.getMessage());
+        }
+    }
+
+    private void handleStartGeneration(CallbackQuery callbackQuery) {
+        Long chatId = callbackQuery.getMessage().getChatId();
+
+        telegramService.sendMessage(chatId, "Отправьте фото и описание одним сообщением");
+        /* здесь нужно добавить stateManager.setUserState если хочешь сохранять состояние*/
+        answerCallback(callbackQuery, "✅ Начинаем генерацию");
     }
 
 }

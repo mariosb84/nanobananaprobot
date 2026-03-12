@@ -56,6 +56,19 @@ public class TelegramService extends DefaultAbsSender {
         }
     }
 
+    public void sendMessage(Long chatId, String text, String parseMode) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        message.setParseMode(parseMode);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Error sending message: {}", e.getMessage());
+        }
+    }
+
     public void sendMessage(SendMessage message) {
         try {
             execute(message);

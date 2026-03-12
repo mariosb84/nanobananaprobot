@@ -14,13 +14,14 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 
@@ -63,6 +64,19 @@ public class MessageHandlerImpl implements MessageHandler {
                     handleStartCommand(chatId, message.getFrom());
                     return;
                 }
+
+                case "🚀 Приступить" -> {
+                    /* Здесь будем запрашивать промпт и фото*/
+                    telegramService.sendMessage(chatId, "Отправьте фото и описание одним сообщением");
+                    stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
+                    return;
+                }
+
+                case "📋 Меню" -> {
+                    showMainMenuCompact(chatId);
+                    return;
+                }
+
                 case "🔙 Назад" -> {
                     sendMainMenu(chatId);
                     stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
@@ -791,13 +805,95 @@ public class MessageHandlerImpl implements MessageHandler {
 
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
 
-        telegramService.sendMessage(chatId,
-                "👋 *Привет, " + firstName + "!*\n\n" +
-                        "Я помогу тебе создавать крутые изображения с помощью AI\n\n" +
-                        "👇 *Просто нажми кнопку ниже и опиши, что хочешь получить*"
-        );
+        showMenuButton(chatId);
 
-        sendMainMenu(chatId);
+        /* Отправляем приветствие с Inline-кнопкой*/
+        sendWelcomeWithInlineButton(chatId, firstName);
+    }
+
+    private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
+        String text = "👋 Добро пожаловать, " + firstName + "!\n\n" +
+                "*Nano Banana* - это передовая нейросеть\n" +
+                "для обработки и генерации фото!\n\n" +
+                "Отправьте фото с описанием,или\n" +
+                "альбом из фотографий с описанием\n" +
+                "чтобы приступить к генерации 👇";
+
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row = new ArrayList<>();
+
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText("🚀 Приступить");
+        button.setCallbackData("start_generation");
+
+        row.add(button);
+        rows.add(row);
+
+        inlineKeyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        message.setParseMode("Markdown");
+        message.setReplyMarkup(inlineKeyboard);
+
+        telegramService.sendMessage(message);
+    }
+
+    private void showMenuButton(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("👇 Нажмите, чтобы начать");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+        keyboard.setOneTimeKeyboard(false); /* не исчезает*/
+
+        List<KeyboardRow> rows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        row.add(new KeyboardButton("📋 Меню")); /* кнопка вызова меню*/
+
+        rows.add(row);
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        telegramService.sendMessage(message);
+    }
+
+    private void showMainMenuCompact(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("📋 *Меню*");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+        keyboard.setOneTimeKeyboard(false);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("Начать                   /start"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("Главное меню             /menu"));
+
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("Купить генерации         /buy"));
+
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add(new KeyboardButton("Пригласить друзей        /invite"));
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        telegramService.sendMessage(message);
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {
