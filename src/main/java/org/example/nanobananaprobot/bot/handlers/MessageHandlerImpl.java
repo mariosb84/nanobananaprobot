@@ -11,9 +11,11 @@ import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -24,6 +26,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import static jdk.javadoc.internal.tool.Main.execute;
 
 @Slf4j
 @Service
@@ -78,7 +83,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
 
                 case "🔙 Назад" -> {
-                    sendMainMenu(chatId);
+                    showMainMenuCompact(chatId);
                     stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                     return;
                 }
@@ -90,7 +95,7 @@ public class MessageHandlerImpl implements MessageHandler {
             }
 
             // 3. Если не системная команда и не состояние — просто показываем меню
-            sendMainMenu(chatId);
+            showMainMenuCompact(chatId);
 
         } catch (Exception e) {
             log.error("Error handling message: {}", e.getMessage(), e);
@@ -175,7 +180,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     telegramService.sendMessage(menuFactory.createVideoPackagesMenu(chatId));
                     stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_VIDEO_PACKAGE);
                 } else {
-                    sendMainMenu(chatId);
+                    showMainMenuCompact(chatId);
                 }
                 return true;
 
@@ -208,10 +213,10 @@ public class MessageHandlerImpl implements MessageHandler {
                     stateManager.clearMultipleImages(chatId);
                     stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                     if ("🏠 Главное меню".equals(text)) {
-                        sendMainMenu(chatId);
+                        showMainMenuCompact(chatId);
                     } else {
                         telegramService.sendMessage(chatId, "❌ Слияние отменено.");
-                        sendMainMenu(chatId);
+                        showMainMenuCompact(chatId);
                     }
                     return true;
                 }
@@ -260,7 +265,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 price = "500";
                 break;
             case "🔙 Назад":
-                sendMainMenu(chatId);
+                showMainMenuCompact(chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 return;
             default:
@@ -283,7 +288,7 @@ public class MessageHandlerImpl implements MessageHandler {
         if ("🏠 Главное меню".equals(text)) {
             stateManager.clearMultipleImages(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            sendMainMenu(chatId);
+            showMainMenuCompact(chatId);
             telegramService.sendMessage(chatId, "🏠 Возврат в главное меню.");
             return true;
         }
@@ -291,7 +296,7 @@ public class MessageHandlerImpl implements MessageHandler {
         if ("❌ Отмена слияния".equals(text)) {
             stateManager.clearMultipleImages(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            sendMainMenu(chatId);
+            showMainMenuCompact(chatId);
             telegramService.sendMessage(chatId, "❌ Слияние отменено.");
             return true;
         }
@@ -590,7 +595,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 settingsChanged = true;
                 break;
             case "🔙 Назад":
-                sendMainMenu(chatId);
+                showMainMenuCompact(chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 return;
         }
@@ -805,10 +810,11 @@ public class MessageHandlerImpl implements MessageHandler {
 
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
 
-        showMenuButton(chatId);
-
         /* Отправляем приветствие с Inline-кнопкой*/
         sendWelcomeWithInlineButton(chatId, firstName);
+
+        telegramService.setMenuButton(chatId);
+
     }
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
@@ -838,26 +844,6 @@ public class MessageHandlerImpl implements MessageHandler {
         message.setText(text);
         message.setParseMode("Markdown");
         message.setReplyMarkup(inlineKeyboard);
-
-        telegramService.sendMessage(message);
-    }
-
-    private void showMenuButton(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("👇 Нажмите, чтобы начать");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-        keyboard.setOneTimeKeyboard(false); /* не исчезает*/
-
-        List<KeyboardRow> rows = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();
-        row.add(new KeyboardButton("📋 Меню")); /* кнопка вызова меню*/
-
-        rows.add(row);
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
 
         telegramService.sendMessage(message);
     }
@@ -938,7 +924,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_TOKEN_PACKAGE);
             }
             case "📊 Мой баланс" -> telegramService.sendMessage(menuFactory.createStatsMenu(chatId));
-            case "🔙 Назад", "🏠 Главное меню" -> sendMainMenu(chatId);
+            case "🔙 Назад", "🏠 Главное меню" ->  showMainMenuCompact(chatId);
             case "📋 Информация" -> sendInfoMenu(chatId);
             case "📞 Контакты" -> sendContactsMenu(chatId);
             case "❌ Выйти" -> authService.handleLogout(chatId);
@@ -1097,7 +1083,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void sendMainMenu(Long chatId) {
-        telegramService.sendMessage(menuFactory.createMainMenu(chatId));
+       // telegramService.sendMessage(menuFactory.createMainMenu(chatId));
     }
 
     private void sendInfoMenu(Long chatId) {
@@ -1181,10 +1167,10 @@ public class MessageHandlerImpl implements MessageHandler {
             stateManager.clearMultipleImages(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
             if ("🏠 Главное меню".equals(prompt)) {
-                sendMainMenu(chatId);
+                showMainMenuCompact(chatId);
             } else {
                 telegramService.sendMessage(chatId, "❌ Слияние отменено.");
-                sendMainMenu(chatId);
+                showMainMenuCompact(chatId);
             }
             return;
         }

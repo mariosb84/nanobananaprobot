@@ -125,8 +125,8 @@ public class AuthService {
 
                 telegramService.sendMessage(chatId, "💰 Баланс: 0 токенов. Купите пакет в магазине!");
 
-                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
-                        .execute(() -> telegramService.sendMessage(menuFactory.createMainMenu(chatId)));
+                //CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
+                     //   .execute(() -> telegramService.sendMessage(menuFactory.createMainMenu(chatId)));
             } else {
                 telegramService.sendMessage(chatId, "❌ Регистрация успешна, но авторизация не удалась. Используйте /login");
                 stateManager.removeUserState(chatId);
@@ -148,7 +148,7 @@ public class AuthService {
                 userService.updateTelegramChatId(username, chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 telegramService.sendMessage(chatId, "✅ Авторизация успешна!");
-                telegramService.sendMessage(menuFactory.createMainMenu(chatId));
+                //telegramService.sendMessage(menuFactory.createMainMenu(chatId));
             }
         } catch (InvalidCredentialsException e) {
             telegramService.sendMessage(chatId, "❌ Неверный логин или пароль. /login");

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
+import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.imageio.IIOImage;
@@ -355,6 +358,35 @@ public class TelegramService extends DefaultAbsSender {
         } catch (Exception e) {
             log.error("Error sending prompt example: {}", e.getMessage());
             sendMessage(chatId, caption);
+        }
+    }
+
+    public void showOnlyKeyboard(Long chatId, ReplyKeyboardMarkup keyboard) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(" "); // пробел Telegram пропускает
+        message.setReplyMarkup(keyboard);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Error showing keyboard: {}", e.getMessage());
+        }
+    }
+
+    public void setMenuButton(Long chatId) {
+        SetChatMenuButton setChatMenuButton = new SetChatMenuButton();
+        setChatMenuButton.setChatId(chatId.toString());
+
+        // Используем builder
+        MenuButtonCommands menuButton = MenuButtonCommands.builder().build();
+        setChatMenuButton.setMenuButton(menuButton);
+
+        try {
+            execute(setChatMenuButton);
+            log.info("Menu button set for chatId: {}", chatId);
+        } catch (TelegramApiException e) {
+            log.error("Error setting menu button: {}", e.getMessage());
         }
     }
 
