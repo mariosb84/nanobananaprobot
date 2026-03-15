@@ -364,7 +364,7 @@ public class TelegramService extends DefaultAbsSender {
     public void showOnlyKeyboard(Long chatId, ReplyKeyboardMarkup keyboard) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText(" "); // пробел Telegram пропускает
+        message.setText(" "); /* пробел Telegram пропускает*/
         message.setReplyMarkup(keyboard);
 
         try {
@@ -378,7 +378,7 @@ public class TelegramService extends DefaultAbsSender {
         SetChatMenuButton setChatMenuButton = new SetChatMenuButton();
         setChatMenuButton.setChatId(chatId.toString());
 
-        // Используем builder
+        /* Используем builder*/
         MenuButtonCommands menuButton = MenuButtonCommands.builder().build();
         setChatMenuButton.setMenuButton(menuButton);
 

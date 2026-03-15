@@ -474,4 +474,39 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
+    @Override
+    public SendMessage showMainMenuCompact(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("📋 *Меню*");
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        keyboard.setResizeKeyboard(true);
+        keyboard.setOneTimeKeyboard(false);
+
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("Начать → /start"));
+
+        //KeyboardRow row2 = new KeyboardRow();
+        row1.add(new KeyboardButton("Главное меню → /menu"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("Купить генерации → /buy"));
+
+        //KeyboardRow row4 = new KeyboardRow();
+        row2.add(new KeyboardButton("Пригласить друзей → /invite"));
+
+        rows.add(row1);
+        rows.add(row2);
+        //rows.add(row3);
+       // rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }
+
 }

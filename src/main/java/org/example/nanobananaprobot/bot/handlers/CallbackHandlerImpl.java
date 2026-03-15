@@ -69,7 +69,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
         try {
             if (data.startsWith("check_payment_")) {
                 handlePaymentCheckCallback(callbackQuery, data);
-            } else if ("start_generation".equals(data)) {  // ← добавить этот блок
+            } else if ("start_generation".equals(data)) {  /* ← добавить этот блок*/
                 handleStartGeneration(callbackQuery);
             } else {
                 answerCallback(callbackQuery, "❌ Неизвестная команда");

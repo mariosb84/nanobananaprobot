@@ -16,4 +16,6 @@ public interface MenuFactory {
     SendMessage createVideoPackagesMenu(Long chatId);
     SendMessage createTokenPackagesMenu(Long chatId);
     SendMessage createPromptsExamplesMenu(Long chatId);
+
+    SendMessage showMainMenuCompact(Long chatId);
 }

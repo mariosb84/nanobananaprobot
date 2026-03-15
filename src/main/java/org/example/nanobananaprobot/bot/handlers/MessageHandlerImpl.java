@@ -63,7 +63,7 @@ public class MessageHandlerImpl implements MessageHandler {
             String userState = stateManager.getUserState(chatId);
             log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
-            // 1. Обрабатываем системные команды
+            /* 1. Обрабатываем системные команды*/
             switch (text) {
                 case "/start", "🏠 Старт" -> {
                     handleStartCommand(chatId, message.getFrom());
@@ -89,12 +89,12 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
             }
 
-            // 2. Обработка состояний ввода
+            /* 2. Обработка состояний ввода*/
             if (handleInputStates(chatId, text, userState)) {
                 return;
             }
 
-            // 3. Если не системная команда и не состояние — просто показываем меню
+            /* 3. Если не системная команда и не состояние — просто показываем меню*/
             showMainMenuCompact(chatId);
 
         } catch (Exception e) {
@@ -849,37 +849,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void showMainMenuCompact(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("📋 *Меню*");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-        keyboard.setOneTimeKeyboard(false);
-
-        List<KeyboardRow> rows = new ArrayList<>();
-
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("Начать                   /start"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("Главное меню             /menu"));
-
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("Купить генерации         /buy"));
-
-        KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("Пригласить друзей        /invite"));
-
-        rows.add(row1);
-        rows.add(row2);
-        rows.add(row3);
-        rows.add(row4);
-
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
-
-        telegramService.sendMessage(message);
+        telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {
@@ -1083,7 +1053,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void sendMainMenu(Long chatId) {
-       // telegramService.sendMessage(menuFactory.createMainMenu(chatId));
+        telegramService.sendMessage(menuFactory.createMainMenu(chatId));
     }
 
     private void sendInfoMenu(Long chatId) {
