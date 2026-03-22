@@ -82,7 +82,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private void handleStartGeneration(CallbackQuery callbackQuery) {
         Long chatId = callbackQuery.getMessage().getChatId();
 
-        telegramService.sendMessage(chatId, "Отправьте фото и описание одним сообщением");
+        telegramService.sendMessage(chatId, "Отправьте фото и описание одним сообщением!!!");
         /* здесь нужно добавить stateManager.setUserState если хочешь сохранять состояние*/
         answerCallback(callbackQuery, "✅ Начинаем генерацию");
     }

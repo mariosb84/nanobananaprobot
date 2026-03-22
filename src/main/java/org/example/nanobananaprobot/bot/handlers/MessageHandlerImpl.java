@@ -72,16 +72,16 @@ public class MessageHandlerImpl implements MessageHandler {
 
                 case "🚀 Приступить" -> {
                     /* Здесь будем запрашивать промпт и фото*/
-                    /*String textToProceed = "Отправьте пожалуйста фото" +
+                    String textToProceed = "Отправьте пожалуйста фото" +
                             "с описанием, или альбом из\n" +
                             "фотографий с описанием\n" +
                             "чтобы приступить к генерации 👇\n" +
                             "Либо просто введите промпт\n" +
                             "для генерации.\n\n" +
                             "Важно - отправьте фото и описание" +
-                            "одним сообщением!";*/
+                            "одним сообщением!";
 
-                    telegramService.sendMessage(chatId, "textToProceed");
+                    telegramService.sendMessage(chatId, textToProceed);
                     stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
                     return;
                 }
