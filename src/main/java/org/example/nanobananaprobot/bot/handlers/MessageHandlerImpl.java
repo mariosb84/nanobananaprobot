@@ -65,24 +65,25 @@ public class MessageHandlerImpl implements MessageHandler {
 
             /* 1. Обрабатываем системные команды*/
             switch (text) {
-                case "/start", "🏠 Старт" -> {
+                case "/start", "🏠 Старт", "Начать → /start" -> {
                     handleStartCommand(chatId, message.getFrom());
                     return;
                 }
 
-                case "🚀 Приступить" -> {
-                    /* Здесь будем запрашивать промпт и фото*/
-                    String textToProceed = "Отправьте пожалуйста фото" +
-                            "с описанием, или альбом из\n" +
-                            "фотографий с описанием\n" +
-                            "чтобы приступить к генерации 👇\n" +
-                            "Либо просто введите промпт\n" +
-                            "для генерации.\n\n" +
-                            "Важно - отправьте фото и описание" +
-                            "одним сообщением!";
+                case "Главное меню → /menu" -> {
+                    telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+                    return;
+                }
 
-                    telegramService.sendMessage(chatId, textToProceed);
-                    stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
+                case "Купить генерации → /buy" -> {
+                    telegramService.sendMessage(menuFactory.createTokenPackagesMenu(chatId));
+                    stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_TOKEN_PACKAGE);
+                    return;
+                }
+
+                case "Пригласить друзей → /invite" -> {
+                    // TODO: реализовать приглашение друзей
+                    telegramService.sendMessage(chatId, "🔗 Ваша реферальная ссылка:\nhttps://t.me/ваш_бот?start=ref_" + chatId);
                     return;
                 }
 
@@ -113,10 +114,18 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private boolean handleInputStates(Long chatId, String text, String userState) {
+
         /* ДОБАВЬТЕ ЭТУ ПРОВЕРКУ*/
         if (text == null) {
             log.error("handleInputStates received NULL text! ChatId: {}, State: {}", chatId, userState);
             return true;
+        }
+
+        /* Если текст — это команда меню — не обрабатываем как промпт*/
+        if (text.startsWith("/") || text.equals("Купить генерации → /buy") ||
+                text.equals("Главное меню → /menu") || text.equals("Пригласить друзей → /invite") ||
+                text.equals("Начать → /start")) {
+            return false; /* не блокируем, пусть обрабатывается как команда*/
         }
 
         /* БЛОКИРОВКА КНОПОК ВО ВРЕМЯ ВВОДА*/
@@ -824,6 +833,8 @@ public class MessageHandlerImpl implements MessageHandler {
 
         telegramService.setMenuButton(chatId);
 
+        showMainMenuCompact(chatId);
+
     }
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
@@ -859,6 +870,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private void showMainMenuCompact(Long chatId) {
         telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+        //menuFactory.showMainMenuCompact(chatId);
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {

@@ -3,6 +3,7 @@ package org.example.nanobananaprobot.bot.handlers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.service.TelegramService;
+import org.example.nanobananaprobot.bot.service.UserStateManager;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -14,25 +15,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
 
     private final TelegramService telegramService;
     private final PaymentHandler paymentHandler;
-
-/*    @Override
-    public void handleCallback(CallbackQuery callbackQuery) {
-        String data = callbackQuery.getData();
-        Long chatId = callbackQuery.getMessage().getChatId();
-
-        log.debug("Handling callback - ChatId: {}, Data: {}", chatId, data);
-
-        try {
-            if (data.startsWith("check_payment_")) {
-                handlePaymentCheckCallback(callbackQuery, data);
-            } else {
-                *//* Для других колбэков (если будут)*//*
-                answerCallback(callbackQuery, "❌ Неизвестная команда");
-            }
-        } catch (Exception e) {
-            log.error("Error handling callback: {}", e.getMessage());
-        }
-    }*/
+    private final UserStateManager stateManager;
 
     private void handlePaymentCheckCallback(CallbackQuery callbackQuery, String data) {
         /* Сразу отвечаем на колбэк*/
@@ -82,8 +65,17 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private void handleStartGeneration(CallbackQuery callbackQuery) {
         Long chatId = callbackQuery.getMessage().getChatId();
 
-        telegramService.sendMessage(chatId, "Отправьте фото и описание одним сообщением!!!");
-        /* здесь нужно добавить stateManager.setUserState если хочешь сохранять состояние*/
+        String textToProceed = "Отправьте пожалуйста фото\n" +
+                "с описанием, или альбом из\n" +
+                "фотографий с описанием\n" +
+                "чтобы приступить к генерации 👇\n\n" +
+                "Либо просто введите промпт\n" +
+                "для генерации.👇\n\n" +
+                "Важно - отправьте фото и описание\n" +
+                "одним сообщением!";
+
+        telegramService.sendMessage(chatId, textToProceed);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
         answerCallback(callbackQuery, "✅ Начинаем генерацию");
     }
 

@@ -11,6 +11,7 @@ import org.example.nanobananaprobot.service.AuthenticationService;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -126,7 +127,9 @@ public class AuthService {
                 telegramService.sendMessage(chatId, "💰 Баланс: 0 токенов. Купите пакет в магазине!");
 
                 CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
-                        .execute(() -> telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId)));
+                        .execute(() -> {
+                            telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+                        });
             } else {
                 telegramService.sendMessage(chatId, "❌ Регистрация успешна, но авторизация не удалась. Используйте /login");
                 stateManager.removeUserState(chatId);
