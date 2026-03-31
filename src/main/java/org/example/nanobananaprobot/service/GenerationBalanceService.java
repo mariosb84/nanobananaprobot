@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.example.nanobananaprobot.domain.model.UserGenerationBalance;
+import org.example.nanobananaprobot.repository.OperationHistoryRepository;
 import org.example.nanobananaprobot.repository.UserGenerationBalanceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -17,6 +19,7 @@ public class GenerationBalanceService {
 
     private final UserGenerationBalanceRepository balanceRepository;
     private final CostCalculatorService costCalculatorService; // Будет создан позже
+    private final OperationHistoryRepository operationHistoryRepository;
 
     /* ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========*/
 
@@ -227,6 +230,14 @@ public class GenerationBalanceService {
         /* Конвертируем старые "видео" в токены (1 видео = 10 токенов)*/
 
         addTokens(userId, count * 10);
+    }
+
+    public int getTotalGenerations(Long userId) {
+        return operationHistoryRepository.countByUserIdAndOperationTypeInAndStatus(
+                userId,
+                List.of("generate", "edit", "merge"),
+                "completed"
+        );
     }
 
 }

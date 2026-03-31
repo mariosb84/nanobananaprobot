@@ -1,6 +1,7 @@
 package org.example.nanobananaprobot.bot.service;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -63,6 +64,11 @@ public class UserStateManager {
     public static final String STATE_WAITING_MERGE_PROMPT = "WAITING_MERGE_PROMPT";
 
     public static final String STATE_WAITING_TOKEN_PACKAGE = "WAITING_TOKEN_PACKAGE"; // Новое состояние
+
+    public static final String STATE_WAITING_USER_INPUT = "WAITING_USER_INPUT";
+    public static final String STATE_WAITING_SETTINGS = "WAITING_SETTINGS";
+    public static final String STATE_WAITING_ASPECT_RATIO = "WAITING_ASPECT_RATIO";
+    public static final String STATE_WAITING_RESOLUTION = "WAITING_RESOLUTION";
 
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
@@ -193,6 +199,11 @@ public class UserStateManager {
 
     public String getMediaGroupId(Long chatId) {
         return mediaGroupIds.get(chatId);
+    }
+
+    public void clearTempData(Long chatId) {
+        tempPrompts.remove(chatId);
+        userUploadedImages.remove(chatId);
     }
 
 }

@@ -75,7 +75,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 "одним сообщением!";
 
         telegramService.sendMessage(chatId, textToProceed);
-        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
+        //stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_PROMPT);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_USER_INPUT);
         answerCallback(callbackQuery, "✅ Начинаем генерацию");
     }
 
