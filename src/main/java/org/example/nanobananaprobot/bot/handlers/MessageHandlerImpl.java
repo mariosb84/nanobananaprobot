@@ -11,12 +11,9 @@ import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -27,9 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import static jdk.javadoc.internal.tool.Main.execute;
 
 @Slf4j
 @Service
@@ -73,7 +67,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
                 case "Главное меню → /menu" -> {
                     showUserInfo(chatId);
-                    //telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+                    /*telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));*/
                     return;
                 }
 
@@ -84,7 +78,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
 
                 case "Пригласить друзей → /invite" -> {
-                    // TODO: реализовать приглашение друзей
+
+                    /* TODO: реализовать приглашение друзей*/
+
                     telegramService.sendMessage(chatId, "🔗 Ваша реферальная ссылка:\nhttps://t.me/ваш_бот?start=ref_" + chatId);
                     return;
                 }
@@ -94,11 +90,27 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
-                case "🔙 Назад" -> {
+               /* case "🔙 Назад" -> {
                     showMainMenuCompact(chatId);
                     stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                     return;
+                }*/
+
+                case "🔙 Назад" -> {
+                    String currentState = stateManager.getUserState(chatId);
+
+                    /* Если мы в меню выбора формата или качества — возвращаемся в настройки*/
+                    if (UserStateManager.STATE_WAITING_ASPECT_RATIO.equals(currentState) ||
+                            UserStateManager.STATE_WAITING_RESOLUTION.equals(currentState)) {
+                        showSettingsMenu(chatId);
+                    } else {
+                        /* В остальных случаях — в главное меню*/
+                        showMainMenuCompact(chatId);
+                        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                    }
+                    return;
                 }
+
             }
 
             /* 2. Обработка состояний ввода*/
@@ -136,7 +148,7 @@ public class MessageHandlerImpl implements MessageHandler {
         message.setText(info);
         message.setParseMode("Markdown");
 
-        // Показываем меню после информации
+        /* Показываем меню после информации*/
         telegramService.sendMessage(message);
         telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
     }
@@ -219,7 +231,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 return true;
 
             case UserStateManager.STATE_WAITING_USER_INPUT : {
-                handleUserInput(chatId, text, null); // пока без фото, потом добавим
+                handleUserInput(chatId, text, null);                      /* пока без фото, потом добавим*/
                 return true;
             }
 
@@ -429,7 +441,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void startGenerationWithCurrentSettings(Long chatId) {
-        // Получаем пользователя из БД
+        /* Получаем пользователя из БД*/
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
             telegramService.sendMessage(chatId, "❌ Пользователь не найден");
@@ -437,7 +449,7 @@ public class MessageHandlerImpl implements MessageHandler {
         }
         Long userId = user.getId();
 
-        // Получаем сохранённые данные
+        /* Получаем сохранённые данные*/
         String prompt = stateManager.getTempPrompt(chatId);
         byte[] image = stateManager.getUploadedImage(chatId);
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
@@ -448,7 +460,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        // Проверяем баланс
+        /* Проверяем баланс*/
         int requiredTokens = costCalculatorService.calculateTokens(config);
         if (!balanceService.hasEnoughTokens(userId, requiredTokens)) {
             telegramService.sendMessage(chatId, "❌ Недостаточно токенов!\n" +
@@ -457,34 +469,34 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        // Определяем тип операции и запускаем
+        /* Определяем тип операции и запускаем*/
         if (image != null) {
-            // Редактирование
+            /* Редактирование*/
             balanceService.useImageEdit(userId, config);
             startAsyncImageEdit(chatId, userId, image, prompt, config);
         } else {
-            // Генерация
+            /* Генерация*/
             balanceService.useImageGeneration(userId, config);
             generationService.startAsyncGeneration(chatId, userId, prompt);
         }
 
-        // Очищаем временные данные
+        /* Очищаем временные данные*/
         stateManager.clearTempData(chatId);
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
     private void handleUserInput(Long chatId, String text, List<byte[]> photos) {
-        // Сохраняем фото в stateManager
+        /* Сохраняем фото в stateManager*/
         if (photos != null && !photos.isEmpty()) {
             stateManager.saveUploadedImage(chatId, photos.get(0));
         }
 
-        // Сохраняем промпт
+        /* Сохраняем промпт*/
         if (text != null && !text.isEmpty()) {
             stateManager.setTempPrompt(chatId, text);
         }
 
-        // Переходим к выбору настроек
+        /* Переходим к выбору настроек*/
         showSettingsMenu(chatId);
     }
 
@@ -1155,7 +1167,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private void showMainMenuCompact(Long chatId) {
         telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
-        //menuFactory.showMainMenuCompact(chatId);
+        /*menuFactory.showMainMenuCompact(chatId);*/
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {
