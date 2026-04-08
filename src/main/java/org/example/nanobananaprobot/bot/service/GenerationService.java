@@ -34,6 +34,7 @@ public class GenerationService {
 
         /* 1. Получаем настройки пользователя*/
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setMode("generate");  /* ← ДОБАВИТЬ ЭТУ СТРОЧКУ!*/
         int requiredTokens = costCalculatorService.calculateTokens(config);
 
         /* 2. Проверяем баланс токенов*/

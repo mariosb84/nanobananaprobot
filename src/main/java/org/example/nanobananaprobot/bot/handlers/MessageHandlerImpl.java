@@ -135,7 +135,7 @@ public class MessageHandlerImpl implements MessageHandler {
         }
 
         int tokensBalance = balanceService.getTokensBalance(user.getId());
-        int totalGenerations = balanceService.getTotalGenerations(user.getId()); // нужно добавить
+        int totalGenerations = balanceService.getTotalGenerations(user.getId()); /* нужно добавить*/
 
         String info = "📊 *Ваша статистика*\n\n" +
                 "👤 ID: `" + chatId + "`\n" +
@@ -471,11 +471,13 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Определяем тип операции и запускаем*/
         if (image != null) {
+            config.setMode("edit");  /* ← ДОБАВИТЬ*/
             /* Редактирование*/
             balanceService.useImageEdit(userId, config);
             startAsyncImageEdit(chatId, userId, image, prompt, config);
         } else {
             /* Генерация*/
+            config.setMode("generate");  /* ← ДОБАВИТЬ*/
             balanceService.useImageGeneration(userId, config);
             generationService.startAsyncGeneration(chatId, userId, prompt);
         }
