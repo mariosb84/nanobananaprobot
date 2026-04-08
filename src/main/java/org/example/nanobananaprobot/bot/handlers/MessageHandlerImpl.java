@@ -454,6 +454,13 @@ public class MessageHandlerImpl implements MessageHandler {
         byte[] image = stateManager.getUploadedImage(chatId);
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
+        /* Устанавливаем режим перед использованием*/
+        if (image != null) {
+            config.setMode("edit");
+        } else {
+            config.setMode("generate");
+        }
+
         if (prompt == null || prompt.isEmpty()) {
             telegramService.sendMessage(chatId, "❌ Промпт не найден. Начните заново.");
             showMainMenuCompact(chatId);
@@ -519,6 +526,14 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private void showSettingsMenu(Long chatId) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
+
+        /* Определяем режим по наличию фото*/
+        byte[] image = stateManager.getUploadedImage(chatId);
+        if (image != null) {
+            config.setMode("edit");
+        } else {
+            config.setMode("generate");
+        }
 
         String settingsText = "⚙️ *Настройки генерации*\n\n" +
                 "Текущие параметры:\n" +
