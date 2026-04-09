@@ -276,17 +276,17 @@ public class MessageHandlerImpl implements MessageHandler {
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 return true;
 
-            case UserStateManager.STATE_WAITING_EDIT_PROMPT:
+           /* case UserStateManager.STATE_WAITING_EDIT_PROMPT:
                 handleEditPromptInput(chatId, text);
-                return true;
+                return true;*/
 
             case UserStateManager.STATE_WAITING_QUALITY_SETTINGS:
                 handleQualitySettingsInput(chatId, text);
                 return true;
 
-            case UserStateManager.STATE_WAITING_MERGE_PROMPT:
+            /*case UserStateManager.STATE_WAITING_MERGE_PROMPT:
 
-                /* Добавить проверку на системные кнопки*/
+                *//* Добавить проверку на системные кнопки*//*
 
                 if ("❌ Отмена слияния".equals(text) || "🏠 Главное меню".equals(text)) {
                     stateManager.clearMultipleImages(chatId);
@@ -299,12 +299,13 @@ public class MessageHandlerImpl implements MessageHandler {
                     }
                     return true;
                 }
-                /* Если не системная кнопка - обрабатываем как промпт*/
+                *//* Если не системная кнопка - обрабатываем как промпт*//*
 
                 handleMergePromptInput(chatId, text);
-                return true;
+                return true;*/
 
             /* ВАЖНО: Добавляем обработку состояния ожидания загрузки нескольких фото*/
+
             case UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD:
                 return handleMultipleImagesUploadState(chatId, text);
 
@@ -312,9 +313,61 @@ public class MessageHandlerImpl implements MessageHandler {
                 handleTokenPackageSelection(chatId, text);
                 return true;
 
+            case UserStateManager.STATE_WAITING_EXTRA_PHOTO:
+                /* Добавляем фото в коллекцию*/
+                List<byte[]> images = stateManager.getMultipleImages(chatId);
+                byte[] newPhoto = stateManager.getUploadedImage(chatId);
+                if (newPhoto != null) {
+                    images.add(newPhoto);
+                    stateManager.clearUploadedImage(chatId);
+                }
+
+                if (images.size() >= 2) {
+                    sendMergeContinueButton(chatId, images.size());
+                } else {
+                    telegramService.sendMessage(chatId, "📸 Отправьте ещё одно фото (нужно минимум 2)");
+                }
+                return true;
+
+            case UserStateManager.STATE_WAITING_EDIT_PROMPT:
+                handleEditPromptInput(chatId, text);
+                return true;
+
+            case UserStateManager.STATE_WAITING_MERGE_PROMPT:
+                handleMergePromptInput(chatId, text);
+                return true;
+
             default:
                 return false;
         }
+    }
+
+    private void sendMergeContinueButton(Long chatId, int count) {
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row = new ArrayList<>();
+
+        InlineKeyboardButton continueBtn = new InlineKeyboardButton();
+        continueBtn.setText("✅ Продолжить (" + count + " фото)");
+        continueBtn.setCallbackData("merge_continue");
+
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Отмена");
+        cancelBtn.setCallbackData("cancel_photo");
+
+        row.add(continueBtn);
+        row.add(cancelBtn);
+        rows.add(row);
+
+        inlineKeyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("📸 Загружено " + count + " фото. Нажмите 'Продолжить', чтобы ввести описание слияния");
+        message.setReplyMarkup(inlineKeyboard);
+
+        telegramService.sendMessage(message);
     }
 
     private void handleAspectRatioSelection(Long chatId, String text) {
@@ -524,7 +577,8 @@ public class MessageHandlerImpl implements MessageHandler {
         }
     }
 
-    private void showSettingsMenu(Long chatId) {
+    @Override
+    public void showSettingsMenu(Long chatId) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
         /* Определяем режим по наличию фото*/
@@ -1182,7 +1236,8 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(message);
     }
 
-    private void showMainMenuCompact(Long chatId) {
+    @Override
+    public void showMainMenuCompact(Long chatId) {
         telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
         /*menuFactory.showMainMenuCompact(chatId);*/
     }

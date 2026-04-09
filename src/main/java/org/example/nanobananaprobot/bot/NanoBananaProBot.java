@@ -16,7 +16,9 @@ import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 /*import org.telegram.telegrambots.meta.exceptions.TelegramApiException;*/
@@ -208,19 +210,21 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
                 telegramService.sendMessage(responseMessage);
 
-            } else if (isWaitingUserInput) { // НОВЫЙ БЛОК
-
-                /* Для нового потока: после нажатия "Приступить" */
+            } else if (isWaitingUserInput) {
                 if (mediaGroupId == null) {
-                    /* Одно фото */
+                    // Одно фото — показываем inline-кнопки выбора
                     userStateManager.saveUploadedImage(chatId, photoBytes);
-                    telegramService.sendMessage(chatId, "📸 Фото загружено! Теперь введите описание.");
+                    sendPhotoActionButtons(chatId);
                 } else {
-                    /* Альбом (несколько фото) */
+                    // Альбом (2+ фото) — сразу в коллекцию для слияния
                     userStateManager.addImageToCollection(chatId, photoBytes, mediaGroupId);
                     int count = userStateManager.getMultipleImages(chatId).size();
-                    telegramService.sendMessage(chatId, "📸 Загружено фото " + count + " из альбома.\n" +
-                            "После загрузки всех фото введите описание.");
+                    if (count >= 2) {
+                        // Показать кнопку "Продолжить" для слияния
+                        sendMergeContinueButton(chatId, count);
+                    } else {
+                        telegramService.sendMessage(chatId, "📸 Загружено " + count + " фото. Отправьте ещё фото (нужно минимум 2)");
+                    }
                 }
             }
 
@@ -233,6 +237,67 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
     @PreDestroy
     public void shutdown() {
         messageHandler.shutdown();
+    }
+
+    private void sendPhotoActionButtons(Long chatId) {
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row = new ArrayList<>();
+
+        InlineKeyboardButton editBtn = new InlineKeyboardButton();
+        editBtn.setText("📝 Редактировать");
+        editBtn.setCallbackData("edit_photo");
+
+        InlineKeyboardButton addBtn = new InlineKeyboardButton();
+        addBtn.setText("➕ Добавить ещё фото");
+        addBtn.setCallbackData("add_more_photo");
+
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Отмена");
+        cancelBtn.setCallbackData("cancel_photo");
+
+        row.add(editBtn);
+        row.add(addBtn);
+        row.add(cancelBtn);
+        rows.add(row);
+
+        inlineKeyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("📸 Фото получено. Что делаем дальше?");
+        message.setReplyMarkup(inlineKeyboard);
+
+        telegramService.sendMessage(message);
+    }
+
+    private void sendMergeContinueButton(Long chatId, int count) {
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row = new ArrayList<>();
+
+        InlineKeyboardButton continueBtn = new InlineKeyboardButton();
+        continueBtn.setText("✅ Продолжить (" + count + " фото)");
+        continueBtn.setCallbackData("merge_continue");
+
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Отмена");
+        cancelBtn.setCallbackData("cancel_photo");
+
+        row.add(continueBtn);
+        row.add(cancelBtn);
+        rows.add(row);
+
+        inlineKeyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("📸 Загружено " + count + " фото. Нажмите 'Продолжить', чтобы ввести описание слияния");
+        message.setReplyMarkup(inlineKeyboard);
+
+        telegramService.sendMessage(message);
     }
 
 }

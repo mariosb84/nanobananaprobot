@@ -70,6 +70,8 @@ public class UserStateManager {
     public static final String STATE_WAITING_ASPECT_RATIO = "WAITING_ASPECT_RATIO";
     public static final String STATE_WAITING_RESOLUTION = "WAITING_RESOLUTION";
 
+    public static final String STATE_WAITING_EXTRA_PHOTO = "WAITING_EXTRA_PHOTO";
+
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
     }
@@ -203,6 +205,10 @@ public class UserStateManager {
 
     public void clearTempData(Long chatId) {
         tempPrompts.remove(chatId);
+        userUploadedImages.remove(chatId);
+    }
+
+    public void clearUploadedImage(Long chatId) {
         userUploadedImages.remove(chatId);
     }
 
