@@ -587,6 +587,15 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageGeneration(userId, config);
+
+            // Отправляем сообщение перед генерацией
+            telegramService.sendMessage(chatId,
+                    "🎨 Генерирую изображение...\n\n" +
+                            "📝 Промпт: _" + prompt + "_\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
+                            "⏱️ Это займет ~ от 20 до 59 секунд"
+            );
+
             generationService.startAsyncGeneration(chatId, userId, prompt);
         } else {
             telegramService.sendMessage(chatId, "❌ Не найдены данные для генерации");
