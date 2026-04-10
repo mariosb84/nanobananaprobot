@@ -84,17 +84,17 @@ public class CallbackHandlerImpl implements CallbackHandler {
         answerCallback(callbackQuery, "✅ Начинаем генерацию");
     }
 
-    private void handlePhotoActions(CallbackQuery callbackQuery) {
+   /* private void handlePhotoActions(CallbackQuery callbackQuery) {
         Long chatId = callbackQuery.getMessage().getChatId();
         String data = callbackQuery.getData();
 
         switch (data) {
-            /*case "edit_photo" -> {
+            *//*case "edit_photo" -> {
                 // Режим редактирования
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_EDIT_PROMPT);
                 telegramService.sendMessage(chatId, "✏️ Введите описание изменений для фото:");
                 answerCallback(callbackQuery, "✅ Режим редактирования");
-            }*/
+            }*//*
             case "edit_photo" -> {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
                 messageHandler.showSettingsMenu(chatId);  // ← показать настройки
@@ -116,15 +116,53 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 messageHandler.showMainMenuCompact(chatId);
                 answerCallback(callbackQuery, "❌ Действие отменено");
             }
-           /* case "merge_continue" -> {
+           *//* case "merge_continue" -> {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MERGE_PROMPT);
                 telegramService.sendMessage(chatId, "📝 Введите описание для слияния фото:");
                 answerCallback(callbackQuery, "✅ Переход к промпту");
-            }*/
+            }*//*
             case "merge_continue" -> {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
                 messageHandler.showSettingsMenu(chatId);  // ← показать настройки
                 answerCallback(callbackQuery, "✅ Выберите настройки для слияния");
+            }
+        }
+    }*/
+
+    private void handlePhotoActions(CallbackQuery callbackQuery) {
+        Long chatId = callbackQuery.getMessage().getChatId();
+        String data = callbackQuery.getData();
+
+        switch (data) {
+            case "edit_photo" -> {
+                // Переходим в режим настроек для редактирования
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
+                messageHandler.showSettingsMenu(chatId);
+                answerCallback(callbackQuery, "✅ Выберите настройки для редактирования");
+            }
+            case "add_more_photo" -> {
+                // Переключаемся в режим сбора нескольких фото
+                byte[] firstPhoto = stateManager.getUploadedImage(chatId);
+                stateManager.clearUploadedImage(chatId);
+                if (firstPhoto != null) {
+                    stateManager.addImageToCollection(chatId, firstPhoto, null);
+                }
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD);
+                telegramService.sendMessage(chatId, "📸 Отправьте следующее фото (нужно минимум 2)");
+                answerCallback(callbackQuery, "➕ Жду следующее фото");
+            }
+            case "merge_continue" -> {
+                // Переходим в режим настроек для слияния
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
+                messageHandler.showSettingsMenu(chatId);
+                answerCallback(callbackQuery, "✅ Выберите настройки для слияния");
+            }
+            case "cancel_photo" -> {
+                stateManager.clearUploadedImage(chatId);
+                stateManager.clearMultipleImages(chatId);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                messageHandler.showMainMenuCompact(chatId);
+                answerCallback(callbackQuery, "❌ Действие отменено");
             }
         }
     }

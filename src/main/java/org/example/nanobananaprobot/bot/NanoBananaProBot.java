@@ -94,7 +94,7 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
     /**
      * Обработка загрузки фото
      */
-    private void handlePhotoUpload(Message message) {
+    /*private void handlePhotoUpload(Message message) {
         Long chatId = message.getChatId();
 
         if (!messageHandler.isUserAuthorized(chatId)) {
@@ -112,7 +112,8 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         log.info("handlePhotoUpload: userState={}, isWaitingUserInput={}", userState, isWaitingUserInput);
         log.info("userState={}", userState);
 
-        if (!isWaitingSingleUpload && !isWaitingMultipleUpload && !isWaitingUserInput) {
+        if (!isWaitingSingleUpload && !isWaitingMultipleUpload && !isWaitingUserInput
+                && !UserStateManager.STATE_WAITING_SETTINGS.equals(userState)) {
             telegramService.sendMessage(chatId,
                     "❌ Я сейчас не ожидаю загрузку фото.\n" +
                             "Используйте /edit для редактирования или /merge для объединения."
@@ -122,13 +123,13 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
         try {
 
-            /* Получаем самое большое фото из массива*/
+            *//* Получаем самое большое фото из массива*//*
             List<PhotoSize> photos = message.getPhoto();
             PhotoSize largestPhoto = photos.stream()
                     .max(Comparator.comparing(PhotoSize::getFileSize))
                     .orElseThrow(() -> new RuntimeException("No photo found"));
 
-            /* Скачиваем фото*/
+            *//* Скачиваем фото*//*
             String fileId = largestPhoto.getFileId();
             org.telegram.telegrambots.meta.api.objects.File file = execute(
                     new org.telegram.telegrambots.meta.api.methods.GetFile(fileId)
@@ -141,7 +142,7 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
             if (isWaitingSingleUpload) {
 
-                /* Для редактирования одного фото*/
+                *//* Для редактирования одного фото*//*
                 if (mediaGroupId != null) {
                     telegramService.sendMessage(chatId,
                             "📸 Получено несколько фото в альбоме.\n" +
@@ -162,11 +163,11 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
             } else if (isWaitingMultipleUpload) {
 
-                /* Для объединения нескольких фото*/
+                *//* Для объединения нескольких фото*//*
                 userStateManager.addImageToCollection(chatId, photoBytes, mediaGroupId);
                 int count = userStateManager.getMultipleImages(chatId).size();
 
-                /* СОЗДАЕМ СООБЩЕНИЕ С КНОПКОЙ*/
+                *//* СОЗДАЕМ СООБЩЕНИЕ С КНОПКОЙ*//*
                 SendMessage responseMessage = new SendMessage();
                 responseMessage.setChatId(chatId.toString());
 
@@ -178,24 +179,24 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
                             "📸 Можно отправить еще фото или нажать кнопку чтобы продолжить:");
                 }
 
-                /* СОЗДАЕМ КЛАВИАТУРУ С КНОПКОЙ*/
+                *//* СОЗДАЕМ КЛАВИАТУРУ С КНОПКОЙ*//*
                 ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
                 keyboard.setResizeKeyboard(true);
-                keyboard.setOneTimeKeyboard(true); /* Клавиатура скроется после нажатия*/
+                keyboard.setOneTimeKeyboard(true); *//* Клавиатура скроется после нажатия*//*
 
                 List<KeyboardRow> rows = new ArrayList<>();
                 KeyboardRow buttonRow = new KeyboardRow();
 
-                /* ЕСЛИ ЕСТЬ МИНИМУМ 2 ФОТО - ПОКАЗЫВАЕМ КНОПКУ "ВВЕСТИ ПРОМПТ"*/
+                *//* ЕСЛИ ЕСТЬ МИНИМУМ 2 ФОТО - ПОКАЗЫВАЕМ КНОПКУ "ВВЕСТИ ПРОМПТ"*//*
                 if (count >= 2) {
                     buttonRow.add(new KeyboardButton("✅ Все фото загружены, ввести промпт"));
                 }
 
-                /* КНОПКА "ОТМЕНА" ДЛЯ ВЫХОДА ИЗ РЕЖИМА*/
+                *//* КНОПКА "ОТМЕНА" ДЛЯ ВЫХОДА ИЗ РЕЖИМА*//*
                 KeyboardRow cancelRow = new KeyboardRow();
                 cancelRow.add(new KeyboardButton("❌ Отмена слияния"));
 
-                /* КНОПКА "ГЛАВНОЕ МЕНЮ"*/
+                *//* КНОПКА "ГЛАВНОЕ МЕНЮ"*//*
                 KeyboardRow mainMenuRow = new KeyboardRow();
                 mainMenuRow.add(new KeyboardButton("🏠 Главное меню"));
 
@@ -231,6 +232,74 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         } catch (Exception e) {
             log.error("Error handling photo upload for chatId: {}", chatId, e);
             telegramService.sendMessage(chatId, "❌ Ошибка при загрузке фото. Попробуйте снова.");
+        }
+    }*/
+
+    private void handlePhotoUpload(Message message) {
+        Long chatId = message.getChatId();
+        String userState = userStateManager.getUserState(chatId);
+        String mediaGroupId = message.getMediaGroupId();
+
+        // Разрешённые состояния для загрузки фото
+        boolean isWaitingUserInput = UserStateManager.STATE_WAITING_USER_INPUT.equals(userState);
+        boolean isWaitingMultipleUpload = UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD.equals(userState);
+        boolean isWaitingSettings = UserStateManager.STATE_WAITING_SETTINGS.equals(userState);
+
+        if (!isWaitingUserInput && !isWaitingMultipleUpload && !isWaitingSettings) {
+            telegramService.sendMessage(chatId, "❌ Я сейчас не ожидаю загрузку фото.");
+            return;
+        }
+
+        try {
+            List<PhotoSize> photos = message.getPhoto();
+            PhotoSize largestPhoto = photos.stream()
+                    .max(Comparator.comparing(PhotoSize::getFileSize))
+                    .orElseThrow(() -> new RuntimeException("No photo found"));
+
+            String fileId = largestPhoto.getFileId();
+            org.telegram.telegrambots.meta.api.objects.File file = execute(
+                    new org.telegram.telegrambots.meta.api.methods.GetFile(fileId)
+            );
+            java.io.File downloadedFile = downloadFile(file.getFilePath());
+            byte[] photoBytes = Files.readAllBytes(downloadedFile.toPath());
+
+            log.info("Получено фото: chatId={}, state={}, mediaGroupId={}, size={}KB",
+                    chatId, userState, mediaGroupId, photoBytes.length / 1024);
+
+            // Режим ожидания ввода пользователя (первое фото)
+            if (isWaitingUserInput && mediaGroupId == null) {
+                userStateManager.saveUploadedImage(chatId, photoBytes);
+                sendPhotoActionButtons(chatId);
+                return;
+            }
+
+            // Альбом или добавление фото для слияния
+            if (isWaitingUserInput && mediaGroupId != null) {
+                userStateManager.addImageToCollection(chatId, photoBytes, mediaGroupId);
+                int count = userStateManager.getMultipleImages(chatId).size();
+                if (count >= 2) {
+                    sendMergeContinueButton(chatId, count);
+                } else {
+                    telegramService.sendMessage(chatId, "📸 Загружено " + count + " фото. Отправьте ещё (нужно минимум 2)");
+                }
+                return;
+            }
+
+            // Добавление ещё фото при слиянии (по одному)
+            if (isWaitingMultipleUpload) {
+                userStateManager.addImageToCollection(chatId, photoBytes, null);
+                int count = userStateManager.getMultipleImages(chatId).size();
+                if (count >= 2) {
+                    sendMergeContinueButton(chatId, count);
+                } else {
+                    telegramService.sendMessage(chatId, "📸 Отправьте ещё одно фото (нужно минимум 2)");
+                }
+                return;
+            }
+
+        } catch (Exception e) {
+            log.error("Error handling photo upload", e);
+            telegramService.sendMessage(chatId, "❌ Ошибка загрузки фото");
         }
     }
 

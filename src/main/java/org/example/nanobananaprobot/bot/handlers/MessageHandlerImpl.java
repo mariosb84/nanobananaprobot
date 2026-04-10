@@ -493,8 +493,8 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_RESOLUTION);
     }
 
-    private void startGenerationWithCurrentSettings(Long chatId) {
-        /* Получаем пользователя из БД*/
+   /* private void startGenerationWithCurrentSettings(Long chatId) {
+        *//* Получаем пользователя из БД*//*
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
             telegramService.sendMessage(chatId, "❌ Пользователь не найден");
@@ -502,12 +502,12 @@ public class MessageHandlerImpl implements MessageHandler {
         }
         Long userId = user.getId();
 
-        /* Получаем сохранённые данные*/
+        *//* Получаем сохранённые данные*//*
         String prompt = stateManager.getTempPrompt(chatId);
         byte[] image = stateManager.getUploadedImage(chatId);
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        /* Устанавливаем режим перед использованием*/
+        *//* Устанавливаем режим перед использованием*//*
         if (image != null) {
             config.setMode("edit");
         } else {
@@ -520,7 +520,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Проверяем баланс*/
+        *//* Проверяем баланс*//*
         int requiredTokens = costCalculatorService.calculateTokens(config);
         if (!balanceService.hasEnoughTokens(userId, requiredTokens)) {
             telegramService.sendMessage(chatId, "❌ Недостаточно токенов!\n" +
@@ -529,21 +529,75 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Определяем тип операции и запускаем*/
+        *//* Определяем тип операции и запускаем*//*
         if (image != null) {
-            config.setMode("edit");  /* ← ДОБАВИТЬ*/
-            /* Редактирование*/
+            config.setMode("edit");  *//* ← ДОБАВИТЬ*//*
+            *//* Редактирование*//*
             balanceService.useImageEdit(userId, config);
             startAsyncImageEdit(chatId, userId, image, prompt, config);
         } else {
-            /* Генерация*/
-            config.setMode("generate");  /* ← ДОБАВИТЬ*/
+            *//* Генерация*//*
+            config.setMode("generate");  *//* ← ДОБАВИТЬ*//*
             balanceService.useImageGeneration(userId, config);
             generationService.startAsyncGeneration(chatId, userId, prompt);
         }
 
-        /* Очищаем временные данные*/
+        *//* Очищаем временные данные*//*
         stateManager.clearTempData(chatId);
+        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+    }*/
+
+    private void startGenerationWithCurrentSettings(Long chatId) {
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null) {
+            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+            return;
+        }
+        Long userId = user.getId();
+
+        String prompt = stateManager.getTempPrompt(chatId);
+        byte[] singleImage = stateManager.getUploadedImage(chatId);
+        List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+
+        // Определяем режим
+        if (multipleImages != null && multipleImages.size() >= 2) {
+            // Слияние
+            config.setMode("merge");
+            if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateMergeTokens(config, multipleImages.size()))) {
+                telegramService.sendMessage(chatId, "❌ Недостаточно токенов для слияния");
+                return;
+            }
+            balanceService.useImageMerge(userId, config, multipleImages.size());
+            startAsyncImageMerge(chatId, userId, multipleImages, prompt, config);
+        } else if (singleImage != null) {
+            // Редактирование
+            config.setMode("edit");
+            if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateTokens(config))) {
+                telegramService.sendMessage(chatId, "❌ Недостаточно токенов для редактирования");
+                return;
+            }
+            balanceService.useImageEdit(userId, config);
+            startAsyncImageEdit(chatId, userId, singleImage, prompt, config);
+        } else if (prompt != null && !prompt.isEmpty()) {
+            // Генерация
+            config.setMode("generate");
+            if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateTokens(config))) {
+                telegramService.sendMessage(chatId, "❌ Недостаточно токенов для генерации");
+                return;
+            }
+            balanceService.useImageGeneration(userId, config);
+            generationService.startAsyncGeneration(chatId, userId, prompt);
+        } else {
+            telegramService.sendMessage(chatId, "❌ Не найдены данные для генерации");
+            showMainMenuCompact(chatId);
+            return;
+        }
+
+        // Очистка
+        stateManager.clearTempData(chatId);
+        stateManager.clearUploadedImage(chatId);
+        stateManager.clearMultipleImages(chatId);
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
@@ -583,7 +637,11 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Определяем режим по наличию фото*/
         byte[] image = stateManager.getUploadedImage(chatId);
-        if (image != null) {
+        List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
+
+        if (multipleImages != null && multipleImages.size() >= 2) {
+            config.setMode("merge");
+        } else if (image != null) {
             config.setMode("edit");
         } else {
             config.setMode("generate");
