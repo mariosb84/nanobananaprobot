@@ -134,12 +134,20 @@ public class CallbackHandlerImpl implements CallbackHandler {
         String data = callbackQuery.getData();
 
         switch (data) {
+
             case "edit_photo" -> {
+                // Переходим в режим ожидания промпта для редактирования
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_EDIT_PROMPT);
+                telegramService.sendMessage(chatId, "✏️ Введите описание изменений для фото:");
+                answerCallback(callbackQuery, "✅ Режим редактирования");
+            }
+
+           /* case "edit_photo" -> {
                 // Переходим в режим настроек для редактирования
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
                 messageHandler.showSettingsMenu(chatId);
                 answerCallback(callbackQuery, "✅ Выберите настройки для редактирования");
-            }
+            }*/
             case "add_more_photo" -> {
                 // Переключаемся в режим сбора нескольких фото
                 byte[] firstPhoto = stateManager.getUploadedImage(chatId);

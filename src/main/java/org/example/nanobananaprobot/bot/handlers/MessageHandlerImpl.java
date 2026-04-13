@@ -563,6 +563,14 @@ public class MessageHandlerImpl implements MessageHandler {
         // Определяем режим
         if (multipleImages != null && multipleImages.size() >= 2) {
             // Слияние
+
+            telegramService.sendMessage(chatId,
+                    "🖼️ Объединяю " + multipleImages.size() + " изображений...\n\n" +
+                            "📝 Описание: _" + prompt + "_\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
+                            "⏱️ Это займет ~ от 30 до 59 секунд"
+            );
+
             config.setMode("merge");
             if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateMergeTokens(config, multipleImages.size()))) {
                 telegramService.sendMessage(chatId, "❌ Недостаточно токенов для слияния");
@@ -572,6 +580,14 @@ public class MessageHandlerImpl implements MessageHandler {
             startAsyncImageMerge(chatId, userId, multipleImages, prompt, config);
         } else if (singleImage != null) {
             // Редактирование
+
+            telegramService.sendMessage(chatId,
+                    "🎨 Редактирую изображение...\n\n" +
+                            "📝 Описание изменений: _" + prompt + "_\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
+                            "⏱️ Это займет ~ от 20 до 59 секунд"
+            );
+
             config.setMode("edit");
             if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateTokens(config))) {
                 telegramService.sendMessage(chatId, "❌ Недостаточно токенов для редактирования");
@@ -846,6 +862,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /* НОВЫЙ МЕТОД: Обработка ввода промпта для редактирования*/
+
     private void handleEditPromptInput(Long chatId, String prompt) {
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
@@ -861,10 +878,34 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Получаем настройки пользователя*/
+        /* Сохраняем промпт и фото в stateManager для последующей генерации */
+        stateManager.setTempPrompt(chatId, prompt);
+        // Фото уже должно быть в uploadedImage
+
+        /* Переходим к настройкам */
+        showSettingsMenu(chatId);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
+    }
+
+   /* private void handleEditPromptInput(Long chatId, String prompt) {
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null) {
+            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+            return;
+        }
+
+        *//* Получаем загруженное изображение*//*
+        byte[] sourceImage = stateManager.getUploadedImage(chatId);
+        if (sourceImage == null) {
+            telegramService.sendMessage(chatId, "❌ Изображение не найдено. Попробуйте снова.");
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        }
+
+        *//* Получаем настройки пользователя*//*
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        /* Проверяем достаточно ли средств с учётом настроек качества*/
+        *//* Проверяем достаточно ли средств с учётом настроек качества*//*
         int tokensNeeded = costCalculatorService.calculateTokens(config);
         if (!balanceService.canEditImage(user.getId(), config)) {
             telegramService.sendMessage(chatId,
@@ -877,7 +918,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-       /* Списываем токены*/
+       *//* Списываем токены*//*
         boolean used = balanceService.useImageEdit(user.getId(), config);
         if (!used) {
             telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
@@ -885,7 +926,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Меняем состояние и уведомляем*/
+        *//* Меняем состояние и уведомляем*//*
         stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
 
         telegramService.sendMessage(chatId,
@@ -895,9 +936,15 @@ public class MessageHandlerImpl implements MessageHandler {
                         "⏱️ Это займет ~ от 20 до 59 секунд"
         );
 
-        /* Запускаем асинхронное редактирование*/
-        startAsyncImageEdit(chatId, user.getId(), sourceImage, prompt, config);
-    }
+        // После списания токенов, перед запуском редактирования — показываем настройки
+        showSettingsMenu(chatId);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
+        return; // Выходим, настройки покажутся, а генерация запустится после нажатия кнопки
+
+        *//* Запускаем асинхронное редактирование*//*
+
+        *//*startAsyncImageEdit(chatId, user.getId(), sourceImage, prompt, config);*//*
+    }*/
 
     /* НОВЫЙ МЕТОД: Команда настроек*/
     private void handleSettingsCommand(Long chatId) {
