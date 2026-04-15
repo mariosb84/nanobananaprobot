@@ -159,11 +159,16 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 telegramService.sendMessage(chatId, "📸 Отправьте следующее фото (нужно минимум 2)");
                 answerCallback(callbackQuery, "➕ Жду следующее фото");
             }
-            case "merge_continue" -> {
+           /* case "merge_continue" -> {
                 // Переходим в режим настроек для слияния
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
                 messageHandler.showSettingsMenu(chatId);
                 answerCallback(callbackQuery, "✅ Выберите настройки для слияния");
+            }*/
+            case "merge_continue" -> {
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MERGE_PROMPT);
+                telegramService.sendMessage(chatId, "📝 Введите описание для слияния фото:");
+                answerCallback(callbackQuery, "✅ Теперь введите промпт");
             }
             case "cancel_photo" -> {
                 stateManager.clearUploadedImage(chatId);
