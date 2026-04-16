@@ -560,15 +560,15 @@ public class MessageHandlerImpl implements MessageHandler {
         List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        // Определяем режим
+        /* Определяем режим*/
         if (multipleImages != null && multipleImages.size() >= 2) {
-            // Слияние
+            /* Слияние*/
 
             telegramService.sendMessage(chatId,
                     "🖼️ Объединяю " + multipleImages.size() + " изображений...\n\n" +
                             "📝 Описание: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                            "⏱️ Это займет ~ от 30 до 59 секунд"
+                            "⏱️ Это займет ~ около минуты"
             );
 
             config.setMode("merge");
@@ -579,13 +579,13 @@ public class MessageHandlerImpl implements MessageHandler {
             balanceService.useImageMerge(userId, config, multipleImages.size());
             startAsyncImageMerge(chatId, userId, multipleImages, prompt, config);
         } else if (singleImage != null) {
-            // Редактирование
+            /* Редактирование*/
 
             telegramService.sendMessage(chatId,
                     "🎨 Редактирую изображение...\n\n" +
                             "📝 Описание изменений: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                            "⏱️ Это займет ~ от 20 до 59 секунд"
+                            "⏱️ Это займет ~ около минуты"
             );
 
             config.setMode("edit");
@@ -596,7 +596,7 @@ public class MessageHandlerImpl implements MessageHandler {
             balanceService.useImageEdit(userId, config);
             startAsyncImageEdit(chatId, userId, singleImage, prompt, config);
         } else if (prompt != null && !prompt.isEmpty()) {
-            // Генерация
+            /* Генерация*/
             config.setMode("generate");
             if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateTokens(config))) {
                 telegramService.sendMessage(chatId, "❌ Недостаточно токенов для генерации");
@@ -604,12 +604,12 @@ public class MessageHandlerImpl implements MessageHandler {
             }
             balanceService.useImageGeneration(userId, config);
 
-            // Отправляем сообщение перед генерацией
+            /* Отправляем сообщение перед генерацией*/
             telegramService.sendMessage(chatId,
                     "🎨 Генерирую изображение...\n\n" +
                             "📝 Промпт: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                            "⏱️ Это займет ~ от 20 до 59 секунд"
+                            "⏱️ Это займет ~ около минуты"
             );
 
             generationService.startAsyncGeneration(chatId, userId, prompt);
@@ -619,7 +619,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        // Очистка
+        /* Очистка*/
         stateManager.clearTempData(chatId);
         stateManager.clearUploadedImage(chatId);
         stateManager.clearMultipleImages(chatId);
@@ -880,7 +880,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Сохраняем промпт и фото в stateManager для последующей генерации */
         stateManager.setTempPrompt(chatId, prompt);
-        // Фото уже должно быть в uploadedImage
+        /* Фото уже должно быть в uploadedImage*/
 
         /* Переходим к настройкам */
         showSettingsMenu(chatId);
@@ -1634,9 +1634,73 @@ public class MessageHandlerImpl implements MessageHandler {
 
     /* Новый метод для обработки промпта слияния*/
 
+    /**
+     * Обработка ввода промпта для слияния изображений
+     * Сохраняет промпт и переходит к настройкам (списание токенов и генерация будут после настроек)
+     */
     private void handleMergePromptInput(Long chatId, String prompt) {
 
-        /* Защита от дурака - если вдруг пришла системная кнопка*/
+        /* Защита от дурака - если вдруг пришла системная кнопка */
+        if ("❌ Отмена слияния".equals(prompt) || "🏠 Главное меню".equals(prompt)) {
+            stateManager.clearMultipleImages(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            if ("🏠 Главное меню".equals(prompt)) {
+                showMainMenuCompact(chatId);
+            } else {
+                telegramService.sendMessage(chatId, "❌ Слияние отменено.");
+                showMainMenuCompact(chatId);
+            }
+            return;
+        }
+
+        /* Защита: если пришла кнопка "ввести промпт" как текст */
+        if ("✅ Все фото загружены, ввести промпт".equals(prompt)) {
+            telegramService.sendMessage(chatId,
+                    "❌ Нельзя использовать кнопку как промпт!\n\n" +
+                            "📝 Пожалуйста, введите текстовое описание того, как объединить фото.\n" +
+                            "Пример: 'Создай коллаж из этих фото в стиле ретро'"
+            );
+            return;
+        }
+
+        /* Проверка на пустой промпт или слишком короткий */
+        if (prompt == null || prompt.trim().length() < 3) {
+            telegramService.sendMessage(chatId,
+                    "❌ Промпт должен содержать минимум 3 символа.\n" +
+                            "Пожалуйста, введите описание для слияния:"
+            );
+            return;
+        }
+
+        /* Получаем пользователя */
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null) {
+            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
+            return;
+        }
+
+        /* Получаем все загруженные изображения */
+        List<byte[]> images = stateManager.getMultipleImages(chatId);
+        if (images == null || images.size() < 2) {
+            telegramService.sendMessage(chatId,
+                    "❌ Загружено недостаточно изображений (нужно минимум 2).\n" +
+                            "Попробуйте снова: /merge"
+            );
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        }
+
+        /* Сохраняем промпт в stateManager для последующей генерации */
+        stateManager.setTempPrompt(chatId, prompt);
+
+        /* Переходим к настройкам (списание токенов и запуск будут после выбора настроек) */
+        showSettingsMenu(chatId);
+        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
+    }
+
+ /*   private void handleMergePromptInput(Long chatId, String prompt) {
+
+        *//* Защита от дурака - если вдруг пришла системная кнопка*//*
 
         if ("❌ Отмена слияния".equals(prompt) || "🏠 Главное меню".equals(prompt)) {
             stateManager.clearMultipleImages(chatId);
@@ -1650,7 +1714,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* НОВАЯ ЗАЩИТА: если пришла кнопка "ввести промпт" как текст*/
+        *//* НОВАЯ ЗАЩИТА: если пришла кнопка "ввести промпт" как текст*//*
 
         if ("✅ Все фото загружены, ввести промпт".equals(prompt)) {
             telegramService.sendMessage(chatId,
@@ -1658,10 +1722,10 @@ public class MessageHandlerImpl implements MessageHandler {
                             "📝 Пожалуйста, введите текстовое описание того, как объединить фото.\n" +
                             "Пример: 'Создай коллаж из этих фото в стиле ретро'"
             );
-            return; /* Остаёмся в том же состоянии, ждём правильный ввод*/
+            return; *//* Остаёмся в том же состоянии, ждём правильный ввод*//*
         }
 
-        /* Проверка на пустой промпт или слишком короткий*/
+        *//* Проверка на пустой промпт или слишком короткий*//*
 
         if (prompt == null || prompt.trim().length() < 3) {
             telegramService.sendMessage(chatId,
@@ -1677,7 +1741,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Получаем все загруженные изображения*/
+        *//* Получаем все загруженные изображения*//*
 
         List<byte[]> images = stateManager.getMultipleImages(chatId);
         if (images == null || images.size() < 2) {
@@ -1689,7 +1753,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Проверяем лимит (CometAPI поддерживает до 8-14 изображений)*/
+        *//* Проверяем лимит (CometAPI поддерживает до 8-14 изображений)*//*
 
         if (images.size() > 8) {
             telegramService.sendMessage(chatId,
@@ -1699,12 +1763,12 @@ public class MessageHandlerImpl implements MessageHandler {
             images = images.subList(0, Math.min(8, images.size()));
         }
 
-        /* Получаем настройки пользователя*/
+        *//* Получаем настройки пользователя*//*
 
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        /* Проверяем достаточно ли средств
-        double cost = config.calculateCost();*/
+        *//* Проверяем достаточно ли средств
+        double cost = config.calculateCost();*//*
 
         config.setMode("merge");
         int tokensNeeded = costCalculatorService.calculateMergeTokens(config, images.size());
@@ -1720,7 +1784,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Списываем токены*/
+        *//* Списываем токены*//*
 
         boolean used = balanceService.useImageMerge(user.getId(), config, images.size());
         if (!used) {
@@ -1729,7 +1793,7 @@ public class MessageHandlerImpl implements MessageHandler {
             return;
         }
 
-        /* Меняем состояние и уведомляем*/
+        *//* Меняем состояние и уведомляем*//*
 
         stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
 
@@ -1740,10 +1804,10 @@ public class MessageHandlerImpl implements MessageHandler {
                         "⏱️ Это займет ~от 30 до 59 секунд"
         );
 
-        /* Запускаем асинхронное слияние*/
+        *//* Запускаем асинхронное слияние*//*
 
         startAsyncImageMerge(chatId, user.getId(), images, prompt, config);
-    }
+    }*/
 
     /* Новый асинхронный метод для слияния*/
 
