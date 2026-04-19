@@ -1,8 +1,10 @@
 package org.example.nanobananaprobot.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.example.nanobananaprobot.domain.model.OperationHistory;
 import org.example.nanobananaprobot.domain.model.UserGenerationBalance;
 import org.example.nanobananaprobot.repository.OperationHistoryRepository;
 import org.example.nanobananaprobot.repository.UserGenerationBalanceRepository;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -238,6 +241,27 @@ public class GenerationBalanceService {
                 List.of("generate", "edit", "merge"),
                 "completed"
         );
+    }
+
+    @Transactional
+    public void recordOperation(Long userId, String operationType, int tokensChange, int balanceAfter, Map<String, Object> details) {
+        OperationHistory history = new OperationHistory();
+        history.setUserId(userId);
+        history.setOperationType(operationType);
+        history.setTokensChange(tokensChange);
+        history.setTokensBalanceAfter(balanceAfter);
+
+        /* Преобразуем Map в JSON строку*/
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            history.setDetails(mapper.writeValueAsString(details));
+        } catch (Exception e) {
+            history.setDetails("{}");
+        }
+
+        history.setStatus("completed");
+        history.setCreatedAt(LocalDateTime.now());
+        operationHistoryRepository.save(history);
     }
 
 }

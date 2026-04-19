@@ -2,7 +2,10 @@ package org.example.nanobananaprobot.domain.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.example.nanobananaprobot.domain.JsonbConverter;
+
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "operation_history")
@@ -24,7 +27,9 @@ public class OperationHistory {
     @Column(name = "tokens_balance_after")
     private Integer tokensBalanceAfter;
 
+    /*@Convert(converter = JsonbConverter.class)*/
     @Column(columnDefinition = "jsonb")
+    /*private Map<String, Object> details;*/
     private String details;
 
     private String status;

@@ -495,8 +495,12 @@ public class MenuFactoryImpl implements MenuFactory {
         row2.add(new KeyboardButton("Купить генерации → /buy"));
         row2.add(new KeyboardButton("Пригласить друзей → /invite"));
 
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add(new KeyboardButton("Примеры промптов → /examples"));
+
         rows.add(row1);
         rows.add(row2);
+        rows.add(row3);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);

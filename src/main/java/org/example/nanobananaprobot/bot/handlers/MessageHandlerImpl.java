@@ -22,6 +22,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 
@@ -65,9 +66,21 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
-                case "Главное меню → /menu" -> {
+                case "Главное меню → /menu" ->  {
                     showUserInfo(chatId);
-                    /*telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));*/
+                    stateManager.clearMultipleImages(chatId);
+                    stateManager.clearUploadedImage(chatId);
+                    stateManager.clearTempData(chatId);
+                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN); /* ← ДОБАВИТЬ*/
+                    return;
+                }
+
+                case "🔙 Отмена" -> {
+                    stateManager.clearMultipleImages(chatId);
+                    stateManager.clearUploadedImage(chatId);
+                    stateManager.clearTempData(chatId);
+                    showMainMenuCompact(chatId);
+                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN); /* ← ДОБАВИТЬ*/
                     return;
                 }
 
@@ -85,16 +98,15 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
+                case "Примеры промптов → /examples" -> {
+                    telegramService.sendMessage(menuFactory.createPromptsExamplesMenu(chatId));
+                    return;
+                }
+
                 case "📋 Меню" -> {
                     showMainMenuCompact(chatId);
                     return;
                 }
-
-               /* case "🔙 Назад" -> {
-                    showMainMenuCompact(chatId);
-                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-                    return;
-                }*/
 
                 case "🔙 Назад" -> {
                     String currentState = stateManager.getUserState(chatId);
@@ -276,35 +288,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 return true;
 
-           /* case UserStateManager.STATE_WAITING_EDIT_PROMPT:
-                handleEditPromptInput(chatId, text);
-                return true;*/
-
             case UserStateManager.STATE_WAITING_QUALITY_SETTINGS:
                 handleQualitySettingsInput(chatId, text);
                 return true;
-
-            /*case UserStateManager.STATE_WAITING_MERGE_PROMPT:
-
-                *//* Добавить проверку на системные кнопки*//*
-
-                if ("❌ Отмена слияния".equals(text) || "🏠 Главное меню".equals(text)) {
-                    stateManager.clearMultipleImages(chatId);
-                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-                    if ("🏠 Главное меню".equals(text)) {
-                        showMainMenuCompact(chatId);
-                    } else {
-                        telegramService.sendMessage(chatId, "❌ Слияние отменено.");
-                        showMainMenuCompact(chatId);
-                    }
-                    return true;
-                }
-                *//* Если не системная кнопка - обрабатываем как промпт*//*
-
-                handleMergePromptInput(chatId, text);
-                return true;*/
-
-            /* ВАЖНО: Добавляем обработку состояния ожидания загрузки нескольких фото*/
 
             case UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD:
                 return handleMultipleImagesUploadState(chatId, text);
@@ -493,60 +479,6 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_RESOLUTION);
     }
 
-   /* private void startGenerationWithCurrentSettings(Long chatId) {
-        *//* Получаем пользователя из БД*//*
-        User user = userService.findByTelegramChatId(chatId);
-        if (user == null) {
-            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
-            return;
-        }
-        Long userId = user.getId();
-
-        *//* Получаем сохранённые данные*//*
-        String prompt = stateManager.getTempPrompt(chatId);
-        byte[] image = stateManager.getUploadedImage(chatId);
-        ImageConfig config = stateManager.getOrCreateConfig(chatId);
-
-        *//* Устанавливаем режим перед использованием*//*
-        if (image != null) {
-            config.setMode("edit");
-        } else {
-            config.setMode("generate");
-        }
-
-        if (prompt == null || prompt.isEmpty()) {
-            telegramService.sendMessage(chatId, "❌ Промпт не найден. Начните заново.");
-            showMainMenuCompact(chatId);
-            return;
-        }
-
-        *//* Проверяем баланс*//*
-        int requiredTokens = costCalculatorService.calculateTokens(config);
-        if (!balanceService.hasEnoughTokens(userId, requiredTokens)) {
-            telegramService.sendMessage(chatId, "❌ Недостаточно токенов!\n" +
-                    "💰 Требуется: " + requiredTokens + " токенов (" + (requiredTokens * 5) + " ₽)\n" +
-                    "🛒 Пополните баланс в магазине");
-            return;
-        }
-
-        *//* Определяем тип операции и запускаем*//*
-        if (image != null) {
-            config.setMode("edit");  *//* ← ДОБАВИТЬ*//*
-            *//* Редактирование*//*
-            balanceService.useImageEdit(userId, config);
-            startAsyncImageEdit(chatId, userId, image, prompt, config);
-        } else {
-            *//* Генерация*//*
-            config.setMode("generate");  *//* ← ДОБАВИТЬ*//*
-            balanceService.useImageGeneration(userId, config);
-            generationService.startAsyncGeneration(chatId, userId, prompt);
-        }
-
-        *//* Очищаем временные данные*//*
-        stateManager.clearTempData(chatId);
-        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-    }*/
-
     private void startGenerationWithCurrentSettings(Long chatId) {
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
@@ -562,21 +494,26 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Определяем режим*/
         if (multipleImages != null && multipleImages.size() >= 2) {
-            /* Слияние*/
+            /* Слияние */
+            int imageCount = multipleImages.size();
 
             telegramService.sendMessage(chatId,
-                    "🖼️ Объединяю " + multipleImages.size() + " изображений...\n\n" +
+                    "🖼️ Объединяю " + imageCount + " изображений...\n\n" +
                             "📝 Описание: _" + prompt + "_\n" +
-                            "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
+                            "⚙️ Настройки: " + costCalculatorService.getMergeDescription(config, imageCount) + "\n" +
                             "⏱️ Это займет ~ около минуты"
             );
 
             config.setMode("merge");
-            if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateMergeTokens(config, multipleImages.size()))) {
+            if (!balanceService.hasEnoughTokens(userId, costCalculatorService.calculateMergeTokens(config, imageCount))) {
                 telegramService.sendMessage(chatId, "❌ Недостаточно токенов для слияния");
                 return;
             }
-            balanceService.useImageMerge(userId, config, multipleImages.size());
+            balanceService.useImageMerge(userId, config, imageCount);
+            int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
+            balanceService.recordOperation(userId, "merge", -requiredTokens, balanceService.getTokensBalance(userId),
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt, "imageCount", imageCount));
+
             startAsyncImageMerge(chatId, userId, multipleImages, prompt, config);
         } else if (singleImage != null) {
             /* Редактирование*/
@@ -594,6 +531,10 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageEdit(userId, config);
+            int requiredTokens = costCalculatorService.calculateTokens(config);
+            balanceService.recordOperation(userId, "edit", -requiredTokens, balanceService.getTokensBalance(userId),
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));
+
             startAsyncImageEdit(chatId, userId, singleImage, prompt, config);
         } else if (prompt != null && !prompt.isEmpty()) {
             /* Генерация*/
@@ -603,6 +544,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageGeneration(userId, config);
+            int requiredTokens = costCalculatorService.calculateTokens(config);
+            balanceService.recordOperation(userId, "generate", -requiredTokens, balanceService.getTokensBalance(userId),
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));
 
             /* Отправляем сообщение перед генерацией*/
             telegramService.sendMessage(chatId,
@@ -652,6 +596,15 @@ public class MessageHandlerImpl implements MessageHandler {
                 showMainMenuCompact(chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
             }
+
+            case "Главное меню → /menu" ->  {
+                showUserInfo(chatId);
+                stateManager.clearMultipleImages(chatId);
+                stateManager.clearUploadedImage(chatId);
+                stateManager.clearTempData(chatId);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN); /* ← ДОБАВИТЬ*/
+            }
+
             default -> telegramService.sendMessage(chatId, "❌ Неизвестная команда");
         }
     }
@@ -664,19 +617,23 @@ public class MessageHandlerImpl implements MessageHandler {
         byte[] image = stateManager.getUploadedImage(chatId);
         List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
 
+        String costText;
         if (multipleImages != null && multipleImages.size() >= 2) {
             config.setMode("merge");
+            costText = costCalculatorService.getMergeDescription(config, multipleImages.size());
         } else if (image != null) {
             config.setMode("edit");
+            costText = costCalculatorService.getDescription(config);
         } else {
             config.setMode("generate");
+            costText = costCalculatorService.getDescription(config);
         }
 
         String settingsText = "⚙️ *Настройки генерации*\n\n" +
                 "Текущие параметры:\n" +
                 "• Формат: " + config.getAspectRatio() + "\n" +
                 "• Качество: " + config.getResolution() + "\n" +
-                "• Стоимость: " + costCalculatorService.getDescription(config) + "\n\n" +
+                "• Стоимость: " + costText + "\n\n" +
                 "Выберите параметр для изменения:";
 
         SendMessage message = new SendMessage();
@@ -697,8 +654,12 @@ public class MessageHandlerImpl implements MessageHandler {
         row2.add(new KeyboardButton("✅ Сгенерировать"));
         row2.add(new KeyboardButton("🔙 Отмена"));
 
+        KeyboardRow row3 = new KeyboardRow();
+        row2.add(new KeyboardButton("Главное меню → /menu" ));
+
         rows.add(row1);
         rows.add(row2);
+        rows.add(row3);
 
         keyboard.setKeyboard(rows);
         message.setReplyMarkup(keyboard);
@@ -886,65 +847,6 @@ public class MessageHandlerImpl implements MessageHandler {
         showSettingsMenu(chatId);
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
     }
-
-   /* private void handleEditPromptInput(Long chatId, String prompt) {
-        User user = userService.findByTelegramChatId(chatId);
-        if (user == null) {
-            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
-            return;
-        }
-
-        *//* Получаем загруженное изображение*//*
-        byte[] sourceImage = stateManager.getUploadedImage(chatId);
-        if (sourceImage == null) {
-            telegramService.sendMessage(chatId, "❌ Изображение не найдено. Попробуйте снова.");
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-        *//* Получаем настройки пользователя*//*
-        ImageConfig config = stateManager.getOrCreateConfig(chatId);
-
-        *//* Проверяем достаточно ли средств с учётом настроек качества*//*
-        int tokensNeeded = costCalculatorService.calculateTokens(config);
-        if (!balanceService.canEditImage(user.getId(), config)) {
-            telegramService.sendMessage(chatId,
-                    "❌ Недостаточно токенов!\n\n" +
-                            "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
-                            "🛒 Купите токены в магазине"
-            );
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-       *//* Списываем токены*//*
-        boolean used = balanceService.useImageEdit(user.getId(), config);
-        if (!used) {
-            telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-        *//* Меняем состояние и уведомляем*//*
-        stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
-
-        telegramService.sendMessage(chatId,
-                "🎨 Редактирую изображение...\n\n" +
-                        "📝 Описание изменений: _" + prompt + "_\n" +
-                        "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                        "⏱️ Это займет ~ от 20 до 59 секунд"
-        );
-
-        // После списания токенов, перед запуском редактирования — показываем настройки
-        showSettingsMenu(chatId);
-        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
-        return; // Выходим, настройки покажутся, а генерация запустится после нажатия кнопки
-
-        *//* Запускаем асинхронное редактирование*//*
-
-        *//*startAsyncImageEdit(chatId, user.getId(), sourceImage, prompt, config);*//*
-    }*/
 
     /* НОВЫЙ МЕТОД: Команда настроек*/
     private void handleSettingsCommand(Long chatId) {
@@ -1697,117 +1599,6 @@ public class MessageHandlerImpl implements MessageHandler {
         showSettingsMenu(chatId);
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
     }
-
- /*   private void handleMergePromptInput(Long chatId, String prompt) {
-
-        *//* Защита от дурака - если вдруг пришла системная кнопка*//*
-
-        if ("❌ Отмена слияния".equals(prompt) || "🏠 Главное меню".equals(prompt)) {
-            stateManager.clearMultipleImages(chatId);
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            if ("🏠 Главное меню".equals(prompt)) {
-                showMainMenuCompact(chatId);
-            } else {
-                telegramService.sendMessage(chatId, "❌ Слияние отменено.");
-                showMainMenuCompact(chatId);
-            }
-            return;
-        }
-
-        *//* НОВАЯ ЗАЩИТА: если пришла кнопка "ввести промпт" как текст*//*
-
-        if ("✅ Все фото загружены, ввести промпт".equals(prompt)) {
-            telegramService.sendMessage(chatId,
-                    "❌ Нельзя использовать кнопку как промпт!\n\n" +
-                            "📝 Пожалуйста, введите текстовое описание того, как объединить фото.\n" +
-                            "Пример: 'Создай коллаж из этих фото в стиле ретро'"
-            );
-            return; *//* Остаёмся в том же состоянии, ждём правильный ввод*//*
-        }
-
-        *//* Проверка на пустой промпт или слишком короткий*//*
-
-        if (prompt == null || prompt.trim().length() < 3) {
-            telegramService.sendMessage(chatId,
-                    "❌ Промпт должен содержать минимум 3 символа.\n" +
-                            "Пожалуйста, введите описание для слияния:"
-            );
-            return;
-        }
-
-        User user = userService.findByTelegramChatId(chatId);
-        if (user == null) {
-            telegramService.sendMessage(chatId, "❌ Пользователь не найден");
-            return;
-        }
-
-        *//* Получаем все загруженные изображения*//*
-
-        List<byte[]> images = stateManager.getMultipleImages(chatId);
-        if (images == null || images.size() < 2) {
-            telegramService.sendMessage(chatId,
-                    "❌ Загружено недостаточно изображений (нужно минимум 2).\n" +
-                            "Попробуйте снова: /merge"
-            );
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-        *//* Проверяем лимит (CometAPI поддерживает до 8-14 изображений)*//*
-
-        if (images.size() > 8) {
-            telegramService.sendMessage(chatId,
-                    "⚠️ Загружено слишком много изображений (" + images.size() + ").\n" +
-                            "Использую первые 8 изображений."
-            );
-            images = images.subList(0, Math.min(8, images.size()));
-        }
-
-        *//* Получаем настройки пользователя*//*
-
-        ImageConfig config = stateManager.getOrCreateConfig(chatId);
-
-        *//* Проверяем достаточно ли средств
-        double cost = config.calculateCost();*//*
-
-        config.setMode("merge");
-        int tokensNeeded = costCalculatorService.calculateMergeTokens(config, images.size());
-        if (!balanceService.canMergeImages(user.getId(), config, images.size())) {
-            int userBalance = balanceService.getTokensBalance(user.getId());
-            telegramService.sendMessage(chatId,
-                    "❌ Недостаточно токенов!\n\n" +
-                            "🎨 Баланс: " + userBalance + " токенов\n" +
-                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
-                            "🛒 Купите токены в магазине"
-            );
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-        *//* Списываем токены*//*
-
-        boolean used = balanceService.useImageMerge(user.getId(), config, images.size());
-        if (!used) {
-            telegramService.sendMessage(chatId, "❌ Ошибка списания баланса");
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-            return;
-        }
-
-        *//* Меняем состояние и уведомляем*//*
-
-        stateManager.setUserState(chatId, UserStateManager.STATE_GENERATION_IN_PROGRESS);
-
-        telegramService.sendMessage(chatId,
-                "🖼️ Объединяю " + images.size() + " изображений...\n\n" +
-                        "📝 Описание: _" + prompt + "_\n" +
-                        "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                        "⏱️ Это займет ~от 30 до 59 секунд"
-        );
-
-        *//* Запускаем асинхронное слияние*//*
-
-        startAsyncImageMerge(chatId, user.getId(), images, prompt, config);
-    }*/
 
     /* Новый асинхронный метод для слияния*/
 

@@ -123,3 +123,6 @@ SELECT
     (SELECT COUNT(*) FROM person) as users_count,
     (SELECT COUNT(*) FROM user_generation_balance WHERE tokens_balance > 0) as users_with_tokens,
     (SELECT SUM(tokens_balance) FROM user_generation_balance) as total_tokens;
+
+-- 12. ПРЕОБРАЗОВАНИЕ ПОЛЯ details В TEXT (если было JSONB)
+ALTER TABLE operation_history ALTER COLUMN details TYPE TEXT;
