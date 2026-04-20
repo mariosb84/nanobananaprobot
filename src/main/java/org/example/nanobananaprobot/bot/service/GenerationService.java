@@ -136,7 +136,8 @@ public class GenerationService {
 
             /* 3. Получаем актуальный баланс после успешной генерации*/
 
-            int newBalance = balanceService.getImageBalance(userId);
+            /*int newBalance = balanceService.getImageBalance(userId);*/
+            int newBalance = balanceService.getTokensBalance(userId);
 
             /* 4. Отправляем САМО ИЗОБРАЖЕНИЕ в Telegram (а не ссылку)*/
 
