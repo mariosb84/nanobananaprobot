@@ -1223,6 +1223,8 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
         String text = "👋 Добро пожаловать, " + firstName + "!\n\n" +
+                "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n" +
+                "💰 Баланс: 3 токена\n\n" +
                 "*Nano Banana* - это передовая нейросеть\n" +
                 "для обработки и генерации фото!\n\n" +
                 "Отправьте фото с описанием,или\n" +

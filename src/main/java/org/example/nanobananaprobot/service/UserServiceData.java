@@ -32,6 +32,8 @@ public class UserServiceData implements UserService, UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceData.class);
 
+    private final GenerationBalanceService balanceService;
+
 
     @Override
     public List<User> findAll() {
@@ -199,7 +201,7 @@ public class UserServiceData implements UserService, UserDetailsService {
         userRepository.save(user);
     }
 
-    @Transactional
+    /*@Transactional
     public User findOrCreateByTelegramId(Long chatId) {
         User user = findByTelegramChatId(chatId);
         if (user != null) {
@@ -213,6 +215,27 @@ public class UserServiceData implements UserService, UserDetailsService {
         newUser.setPassword(UUID.randomUUID().toString());
 
         return userRepository.save(newUser);
+    }*/
+
+    @Transactional
+    public User findOrCreateByTelegramId(Long chatId) {
+        User user = findByTelegramChatId(chatId);
+        if (user != null) {
+            return user;
+        }
+
+        User newUser = new User();
+        newUser.setTelegramChatId(chatId);
+        newUser.setUsername("user_" + chatId);
+        newUser.setEmail(chatId + "@telegram.user");
+        newUser.setPassword(UUID.randomUUID().toString());
+        User savedUser = userRepository.save(newUser);
+
+        /* ДОБАВИТЬ ЭТИ 2 СТРОЧКИ:*/
+        balanceService.addTokens(savedUser.getId(), 3);
+        logger.info("Added 3 free tokens for new user: {}", savedUser.getId());
+
+        return savedUser;
     }
 
 }
