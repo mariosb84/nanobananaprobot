@@ -1201,31 +1201,28 @@ public class MessageHandlerImpl implements MessageHandler {
         }
     }
 
-    /*private void handleStartCommand(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
-        stateManager.clearUserData(chatId);
-
-        *//* Создаём в БД заглушку (user_123456) — только для id и баланса*//*
-        userService.findOrCreateByTelegramId(chatId);
-
-        *//* Имя берём из Telegram и используем только здесь*//*
-        String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
-
-        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-
-        *//* Отправляем приветствие с Inline-кнопкой*//*
-        sendWelcomeWithInlineButton(chatId, firstName);
-
-        telegramService.setMenuButton(chatId);
-
-        showMainMenuCompact(chatId);
-
-    }*/
-
     private void handleStartCommand(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
         stateManager.clearUserData(chatId);
 
         /* Создаём или получаем пользователя */
         User user = userService.findOrCreateByTelegramId(chatId);
+
+       /* *//* Проверяем, получал ли пользователь бонус *//*
+        log.info("Checking bonus for user: {}", user.getId());
+        boolean bonusReceived = balanceService.isBonusReceived(user.getId());
+        log.info("Bonus received: {}", bonusReceived);
+        if (!bonusReceived) {
+            telegramService.sendMessage(chatId, "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
+            balanceService.markBonusReceived(user.getId());
+        }*/
+
+        /* Имя берём из Telegram */
+        String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
+
+        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+
+        /* Отправляем приветствие с Inline-кнопкой */
+        sendWelcomeWithInlineButton(chatId, firstName);
 
         /* Проверяем, получал ли пользователь бонус */
         log.info("Checking bonus for user: {}", user.getId());
@@ -1235,14 +1232,6 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId, "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
             balanceService.markBonusReceived(user.getId());
         }
-
-        /* Имя берём из Telegram */
-        String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
-
-        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-
-        /* Отправляем приветствие с Inline-кнопкой */
-        sendWelcomeWithInlineButton(chatId, firstName);
 
         telegramService.setMenuButton(chatId);
 
