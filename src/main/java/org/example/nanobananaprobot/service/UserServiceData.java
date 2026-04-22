@@ -201,22 +201,6 @@ public class UserServiceData implements UserService, UserDetailsService {
         userRepository.save(user);
     }
 
-    /*@Transactional
-    public User findOrCreateByTelegramId(Long chatId) {
-        User user = findByTelegramChatId(chatId);
-        if (user != null) {
-            return user;
-        }
-
-        User newUser = new User();
-        newUser.setTelegramChatId(chatId);
-        newUser.setUsername("user_" + chatId);
-        newUser.setEmail(chatId + "@telegram.user");
-        newUser.setPassword(UUID.randomUUID().toString());
-
-        return userRepository.save(newUser);
-    }*/
-
     @Transactional
     public User findOrCreateByTelegramId(Long chatId) {
         User user = findByTelegramChatId(chatId);
@@ -231,8 +215,9 @@ public class UserServiceData implements UserService, UserDetailsService {
         newUser.setPassword(UUID.randomUUID().toString());
         User savedUser = userRepository.save(newUser);
 
-        /* ДОБАВИТЬ ЭТИ 2 СТРОЧКИ:*/
+        /* Добавляем 3 токена и отмечаем, что бонус получен*/
         balanceService.addTokens(savedUser.getId(), 3);
+        /*balanceService.markBonusReceived(savedUser.getId());*/ /* новый метод*/
         logger.info("Added 3 free tokens for new user: {}", savedUser.getId());
 
         return savedUser;

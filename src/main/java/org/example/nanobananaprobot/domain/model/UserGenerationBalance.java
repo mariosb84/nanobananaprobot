@@ -41,6 +41,9 @@ public class UserGenerationBalance {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "bonus_received", nullable = false)
+    private Boolean bonusReceived = false;
+
     /* ========== МЕТОД ДЛЯ АВТООБНОВЛЕНИЯ ВРЕМЕНИ ==========*/
 
     @PreUpdate

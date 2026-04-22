@@ -126,3 +126,5 @@ SELECT
 
 -- 12. ПРЕОБРАЗОВАНИЕ ПОЛЯ details В TEXT (если было JSONB)
 ALTER TABLE operation_history ALTER COLUMN details TYPE TEXT;
+-- 13. ДОБАВЛЯЕМ ПОЛЕ ДЛЯ КОНТРОЛЯ БЕСПЛАТНОЙ ГЕНЕРАЦИИ И ПОКАЗА СТРОКИ ОБ ЭТОМ
+ALTER TABLE user_generation_balance ADD COLUMN bonus_received BOOLEAN DEFAULT FALSE;

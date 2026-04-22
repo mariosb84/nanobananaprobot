@@ -264,4 +264,15 @@ public class GenerationBalanceService {
         operationHistoryRepository.save(history);
     }
 
+    @Transactional
+    public void markBonusReceived(Long userId) {
+        UserGenerationBalance balance = getOrCreateBalance(userId);
+        balance.setBonusReceived(true);
+        balanceRepository.save(balance);
+    }
+
+    public boolean isBonusReceived(Long userId) {
+        return getOrCreateBalance(userId).getBonusReceived();
+    }
+
 }
