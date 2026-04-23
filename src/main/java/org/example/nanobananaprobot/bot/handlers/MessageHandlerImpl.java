@@ -66,7 +66,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
-                case "Главное меню → /menu" ->  {
+                case "/menu", "Главное меню → /menu" ->  {
                     showUserInfo(chatId);
                     stateManager.clearMultipleImages(chatId);
                     stateManager.clearUploadedImage(chatId);
@@ -84,13 +84,13 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
-                case "Купить генерации → /buy" -> {
+                case "/buy", "Купить генерации → /buy" -> {
                     telegramService.sendMessage(menuFactory.createTokenPackagesMenu(chatId));
                     stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_TOKEN_PACKAGE);
                     return;
                 }
 
-                case "Пригласить друзей → /invite" -> {
+                case "/invite", "Пригласить друзей → /invite" -> {
 
                     /* TODO: реализовать приглашение друзей*/
 
@@ -98,7 +98,7 @@ public class MessageHandlerImpl implements MessageHandler {
                     return;
                 }
 
-                case "Примеры промптов → /examples" -> {
+                case "/examples", "Примеры промптов → /examples" -> {
                     telegramService.sendMessage(menuFactory.createPromptsExamplesMenu(chatId));
                     return;
                 }
@@ -1206,15 +1206,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Создаём или получаем пользователя */
         User user = userService.findOrCreateByTelegramId(chatId);
-
-       /* *//* Проверяем, получал ли пользователь бонус *//*
-        log.info("Checking bonus for user: {}", user.getId());
-        boolean bonusReceived = balanceService.isBonusReceived(user.getId());
-        log.info("Bonus received: {}", bonusReceived);
-        if (!bonusReceived) {
-            telegramService.sendMessage(chatId, "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
-            balanceService.markBonusReceived(user.getId());
-        }*/
 
         /* Имя берём из Telegram */
         String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
