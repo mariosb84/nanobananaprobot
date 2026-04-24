@@ -126,6 +126,18 @@ public class PaymentHandlerImpl implements PaymentHandler {
                             if ("tokens".equals(paymentInfo.getPackageType())) {
                                 int tokens = Integer.parseInt(paymentInfo.getCount());
                                 balanceService.addTokens(user.getId(), tokens);
+
+                                /* НАЧИСЛЕНИЕ БОНУСА ПРИГЛАСИВШЕМУ (20%)*/
+                                Long referrerId = user.getReferrerId();
+                                if (referrerId != null) {
+                                    int bonusTokens = (int) (tokens * 0.2); /* 20% от покупки*/
+                                    if (bonusTokens > 0) {
+                                        balanceService.addTokens(referrerId, bonusTokens);
+                                        log.info("Referral bonus: {} токенов начислено пригласившему (ID: {})", bonusTokens, referrerId);
+
+                                    }
+                                }
+
                                 telegramService.sendMessage(chatId,
                                         "✅ Пакет из " + tokens + " токенов добавлен!\n" +
                                                 "💰 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +

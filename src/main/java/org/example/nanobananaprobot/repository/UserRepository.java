@@ -48,4 +48,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     User findByTelegramChatId(Long chatId);
 
+    User findByReferralCode(String code);
+
+    int countByReferrerId(Long referrerId);
+
 }

@@ -54,15 +54,6 @@ public class UserServiceData implements UserService, UserDetailsService {
             throw new RuntimeException("Пользователь с таким именем уже существует");
         }
 
-        /*УБИРАЕМ ПОКА ПРОВЕРКУ НА ДУБЛИРОВАНИЕ ПОЧТЫ И ТЕЛЕФОНА У ЮЗЕРОВ*/
-
-        /*if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Пользователь с таким email уже существует");
-        }
-        if (userRepository.existsByPhone(user.getPhone())) {
-            throw new RuntimeException("Пользователь с таким номером телефона уже существует");
-        }*/
-
         user.setRoles(List.of(ROLE_USER));
         return Optional.ofNullable(save(user));
     }
@@ -201,7 +192,7 @@ public class UserServiceData implements UserService, UserDetailsService {
         userRepository.save(user);
     }
 
-    @Transactional
+   /* @Transactional
     public User findOrCreateByTelegramId(Long chatId) {
         User user = findByTelegramChatId(chatId);
         if (user != null) {
@@ -215,12 +206,65 @@ public class UserServiceData implements UserService, UserDetailsService {
         newUser.setPassword(UUID.randomUUID().toString());
         User savedUser = userRepository.save(newUser);
 
-        /* Добавляем 3 токена и отмечаем, что бонус получен*/
+        *//* Добавляем 3 токена и отмечаем, что бонус получен*//*
         balanceService.addTokens(savedUser.getId(), 3);
-        /*balanceService.markBonusReceived(savedUser.getId());*/ /* новый метод*/
+        *//*balanceService.markBonusReceived(savedUser.getId());*//* *//* новый метод*//*
         logger.info("Added 3 free tokens for new user: {}", savedUser.getId());
 
         return savedUser;
+    }*/
+
+    @Transactional
+    public User findOrCreateByTelegramId(Long chatId) {
+        User user = findByTelegramChatId(chatId);
+        if (user != null) {
+            return user;
+        }
+
+        User newUser = new User();
+        newUser.setTelegramChatId(chatId);
+        newUser.setUsername("user_" + chatId);
+        newUser.setEmail(chatId + "@telegram.user");
+        newUser.setPassword(UUID.randomUUID().toString());
+
+        /* Генерируем уникальный код приглашения*/
+        newUser.setReferralCode(generateReferralCode());
+
+        User savedUser = userRepository.save(newUser);
+
+        /* Добавляем 3 токена (бонус не отмечаем, сообщение отправится в handleStartCommand)*/
+        balanceService.addTokens(savedUser.getId(), 3);
+        logger.info("Added 3 free tokens for new user: {}", savedUser.getId());
+
+        return savedUser;
+    }
+
+    /* Вспомогательный метод для генерации кода (добавить в тот же класс)*/
+    private String generateReferralCode() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder code = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 8; i++) {
+            code.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return code.toString();
+    }
+
+    public User findByReferralCode(String code) {
+        return userRepository.findByReferralCode(code);
+    }
+
+    @Transactional
+    public void saveReferrerId(Long chatId, Long referrerId) {
+        User user = findByTelegramChatId(chatId);
+        if (user != null) {
+            user.setReferrerId(referrerId);
+            userRepository.save(user);
+        }
+    }
+
+    public int countByReferrerId(Long referrerId) {
+        return userRepository.countByReferrerId(referrerId);
     }
 
 }

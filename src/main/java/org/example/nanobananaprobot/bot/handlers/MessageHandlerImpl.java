@@ -9,6 +9,7 @@ import org.example.nanobananaprobot.service.CometApiService;
 import org.example.nanobananaprobot.service.CostCalculatorService;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -44,6 +45,9 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private final CostCalculatorService costCalculatorService; /* Добавляем*/
 
+    @Value("${tg.username}")
+    private String botUsername;
+
     @Override
     public void handleTextMessage(Message message) {
         if (message == null || message.getText() == null) {
@@ -55,6 +59,13 @@ public class MessageHandlerImpl implements MessageHandler {
         Long chatId = message.getChatId();
         String text = message.getText();
 
+        /* Обработка реферальной ссылки /start ref_XXXX (ДО всего)*/
+        if (text.startsWith("/start ")) {
+            String startParam = text.substring(7);
+            handleStartCommand(chatId, message.getFrom(), startParam);
+            return;
+        }
+
         try {
             String userState = stateManager.getUserState(chatId);
             log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
@@ -62,7 +73,7 @@ public class MessageHandlerImpl implements MessageHandler {
             /* 1. Обрабатываем системные команды*/
             switch (text) {
                 case "/start", "🏠 Старт", "Начать → /start" -> {
-                    handleStartCommand(chatId, message.getFrom());
+                    handleStartCommand(chatId, message.getFrom(), null);
                     return;
                 }
 
@@ -93,8 +104,8 @@ public class MessageHandlerImpl implements MessageHandler {
                 case "/invite", "Пригласить друзей → /invite" -> {
 
                     /* TODO: реализовать приглашение друзей*/
-
-                    telegramService.sendMessage(chatId, "🔗 Ваша реферальная ссылка:\nhttps://t.me/ваш_бот?start=ref_" + chatId);
+                    sendInviteInfo(chatId);
+                    /*telegramService.sendMessage(chatId, "🔗 Ваша реферальная ссылка:\nhttps://t.me/ваш_бот?start=ref_" + chatId);*/
                     return;
                 }
 
@@ -137,6 +148,23 @@ public class MessageHandlerImpl implements MessageHandler {
             log.error("Error handling message: {}", e.getMessage(), e);
             telegramService.sendMessage(chatId, "❌ Произошла ошибка. Попробуйте еще раз.");
         }
+    }
+
+    private void sendInviteInfo(Long chatId) {
+        User user = userService.findByTelegramChatId(chatId);
+        if (user == null || user.getReferralCode() == null) {
+            telegramService.sendMessage(chatId, "❌ Ошибка: ваш код не найден");
+            return;
+        }
+
+        String text = "🎁 *Реферальная программа*\n\n" +
+                "Приглашайте друзей и получайте **20% от их покупок токенов**!\n\n" +
+                "🔗 *Ваша ссылка:*\n" +
+                "`https://t.me/" + botUsername + "?start=ref_" + user.getReferralCode() + "`\n\n" +
+                "👥 Приглашено пользователей: " + userService.countByReferrerId(user.getId()) + "\n\n" +
+                "*Нажмите на ссылку, чтобы скопировать*";
+
+        telegramService.sendMessage(chatId, text);
     }
 
     private void showUserInfo(Long chatId) {
@@ -1163,12 +1191,12 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
-    private void handleCommand(Long chatId, String text, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
+    private void handleCommand(Long chatId, String text, org.telegram.telegrambots.meta.api.objects.User telegramUser, String startParam) {
 
         /*if (text.equals("/start") || text.equals("🏠 Старт")) {*/
 
         if ("/start".equals(text) || "🏠 Старт".equals(text)) {
-            handleStartCommand(chatId, telegramUser);
+            handleStartCommand(chatId, telegramUser, startParam);
             return;
         }
 
@@ -1201,11 +1229,21 @@ public class MessageHandlerImpl implements MessageHandler {
         }
     }
 
-    private void handleStartCommand(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
+    private void handleStartCommand(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser, String startParam) {
         stateManager.clearUserData(chatId);
 
         /* Создаём или получаем пользователя */
         User user = userService.findOrCreateByTelegramId(chatId);
+
+        /* Обработка реферального параметра*/
+        if (startParam != null && startParam.startsWith("ref_")) {
+            String referralCode = startParam.substring(4);
+            User referrer = userService.findByReferralCode(referralCode);
+            if (referrer != null && referrer.getId() != user.getId()) {
+                userService.saveReferrerId(chatId, referrer.getId());
+                telegramService.sendMessage(chatId, "🎉 Вы перешли по реферальной ссылке! Приятного использования!");
+            }
+        }
 
         /* Имя берём из Telegram */
         String firstName = telegramUser.getFirstName() != null ? telegramUser.getFirstName() : "друг";
@@ -1213,16 +1251,24 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
 
         /* Отправляем приветствие с Inline-кнопкой */
-        sendWelcomeWithInlineButton(chatId, firstName);
+        /*sendWelcomeWithInlineButton(chatId, firstName);*/
 
         /* Проверяем, получал ли пользователь бонус */
         log.info("Checking bonus for user: {}", user.getId());
         boolean bonusReceived = balanceService.isBonusReceived(user.getId());
         log.info("Bonus received: {}", bonusReceived);
         if (!bonusReceived) {
-            telegramService.sendMessage(chatId, "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
+            telegramService.sendMessage(chatId,
+                    "👋 Добро пожаловать, " + firstName + "!\n\n" +
+                    "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
             balanceService.markBonusReceived(user.getId());
+        } else {
+            telegramService.sendMessage(chatId,
+                    "👋 Добро пожаловать, " + firstName + "!\n\n");
         }
+
+        /* Отправляем приветствие с Inline-кнопкой */
+        sendWelcomeWithInlineButton(chatId, firstName);
 
         telegramService.setMenuButton(chatId);
 
@@ -1230,7 +1276,8 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
-        String text = "👋 Добро пожаловать, " + firstName + "!\n\n" +
+        /*String text = "👋 Добро пожаловать, " + firstName + "!\n\n" +*/
+                String text =
                 "*Nano Banana* - это передовая нейросеть\n" +
                 "для обработки и генерации фото!\n\n" +
                 "Отправьте фото с описанием,или\n" +

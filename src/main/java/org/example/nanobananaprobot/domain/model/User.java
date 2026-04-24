@@ -77,6 +77,12 @@ public class   User implements UserDetails {
     @Column(name = "telegram_chat_id", unique = true)
     private Long telegramChatId;
 
+    @Column(name = "referral_code", unique = true)
+    private String referralCode;
+
+    @Column(name = "referrer_id")
+    private Long referrerId;
+
     @Override
     public String getUsername() {
         return username;

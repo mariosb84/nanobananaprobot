@@ -128,3 +128,8 @@ SELECT
 ALTER TABLE operation_history ALTER COLUMN details TYPE TEXT;
 -- 13. ДОБАВЛЯЕМ ПОЛЕ ДЛЯ КОНТРОЛЯ БЕСПЛАТНОЙ ГЕНЕРАЦИИ И ПОКАЗА СТРОКИ ОБ ЭТОМ
 ALTER TABLE user_generation_balance ADD COLUMN bonus_received BOOLEAN DEFAULT FALSE;
+-- 14.  Добавляем поле для кода приглашения
+ALTER TABLE person ADD COLUMN IF NOT EXISTS referral_code VARCHAR(10) UNIQUE;
+
+-- 15. Добавляем поле для ID пригласившего
+ALTER TABLE person ADD COLUMN IF NOT EXISTS referrer_id INTEGER REFERENCES person(person_id);
