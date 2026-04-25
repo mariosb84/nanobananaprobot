@@ -4,10 +4,12 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.service.PaymentInfo;
+import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.domain.model.User;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -18,10 +20,13 @@ public class PaymentAutoCheckService {
     private final YooKassaClient yooKassaClient;
     private final GenerationBalanceService balanceService;
     private final UserServiceData userService;
+    private final TelegramService telegramService;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final Map<String, ScheduledFuture<?>> activeChecks = new ConcurrentHashMap<>();
     private final Map<String, PaymentInfo> packagePayments = new ConcurrentHashMap<>();
+
+    private final Set<String> activatedPayments = ConcurrentHashMap.newKeySet();
 
     public void startPackageCheck(String paymentId, Long chatId, String packageType, String count, String price) {
         log.info("Starting package check - Payment: {}, Chat: {}, Type: {}, Count: {}",
@@ -81,6 +86,14 @@ public class PaymentAutoCheckService {
     }
 
     private void activatePackage(String paymentId) {
+
+        /* Защита от двойной активации*/
+        if (activatedPayments.contains(paymentId)) {
+            log.info("Payment already activated: {}", paymentId);
+            return;
+        }
+        activatedPayments.add(paymentId);
+
         try {
             PaymentInfo paymentInfo = packagePayments.get(paymentId);
             if (paymentInfo == null) {
@@ -107,12 +120,34 @@ public class PaymentAutoCheckService {
                 balanceService.addVideoGenerations(user.getId(), count);
                 log.info("Video package activated - User: {}, Count: {}, Payment: {}",
                         user.getUsername(), count, paymentId);
+
             } else if ("tokens".equals(paymentInfo.getPackageType())) {
                 int tokens = Integer.parseInt(paymentInfo.getCount());
                 balanceService.addTokens(user.getId(), tokens);
                 log.info("Token package activated - User: {}, Tokens: {}, Payment: {}",
                         user.getUsername(), tokens, paymentId);
+
+                /* НАЧИСЛЕНИЕ БОНУСА ПРИГЛАСИВШЕМУ (20%)*/
+
+                Long referrerId = user.getReferrerId();
+                if (referrerId != null) {
+                    int bonusTokens = (int) (tokens * 0.2);
+                    if (bonusTokens > 0) {
+                        balanceService.addTokens(referrerId, bonusTokens);
+                        log.info("Referral bonus: {} токенов начислено пригласившему (ID: {})", bonusTokens, referrerId);
+
+                        /* Отправить уведомление пригласившему*/
+
+                        User referrer = userService.findById(referrerId).orElse(null);
+                        if (referrer != null && referrer.getTelegramChatId() != null) {
+                            telegramService.sendMessage(referrer.getTelegramChatId(),
+                                    "🎉 Ваш реферал @" + user.getUsername() + " купил " + tokens + " токенов!\n" +
+                                            "💰 Вы получили " + bonusTokens + " токенов бонусом!");
+                        }
+                    }
+                }
             }
+
 
         } catch (Exception e) {
             log.error("Error activating package: {}", paymentId, e);

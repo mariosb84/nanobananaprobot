@@ -164,7 +164,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 "👥 Приглашено пользователей: " + userService.countByReferrerId(user.getId()) + "\n\n" +
                 "*Нажмите на ссылку, чтобы скопировать*";
 
-        telegramService.sendMessage(chatId, text);
+        telegramService.sendMessage(chatId, text, "Markdown");
     }
 
     private void showUserInfo(Long chatId) {
