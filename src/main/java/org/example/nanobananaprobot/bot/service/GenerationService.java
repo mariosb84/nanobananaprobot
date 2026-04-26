@@ -69,53 +69,6 @@ public class GenerationService {
         startAsyncGeneration(chatId, user.getId(), prompt);
     }
 
-    /*/**
-     * Асинхронная генерация изображения через DALL-E 3
-     * Метод выполняется в отдельном потоке
-     */
-
-   /* @Async
-    public void startAsyncGeneration(Long chatId, Long userId, String prompt) {
-        try {
-            log.info("Начало генерации для chatId: {}, prompt: {}", chatId, prompt);
-
-            // 5. Вызов реального API через прокси
-            String imageUrl = proxyApiImageService.generateImage(prompt);
-            int newBalance = balanceService.getImageBalance(userId);
-
-            // 6. Отправка успешного результата
-            telegramService.sendMessage(chatId,
-                    "✅ Изображение готово!\n\n" +
-                            "🖼️ Ссылка: " + imageUrl + "\n" +
-                            "📝 Промпт: _" + prompt + "_\n" +
-                            "🎨 Осталось генераций: " + newBalance
-            );
-
-            log.info("Генерация успешна для chatId: {}, URL: {}", chatId, imageUrl);
-
-        } catch (Exception e) {
-            log.error("Ошибка генерации для chatId: {}", chatId, e);
-
-            // 7. Возвращаем баланс при ошибке
-            try {
-                balanceService.addImageGenerations(userId, 1);
-                log.info("Баланс возвращен для userId: {}", userId);
-            } catch (Exception ex) {
-                log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
-            }
-
-            // 8. Уведомляем пользователя об ошибке
-            telegramService.sendMessage(chatId,
-                    "❌ Произошла ошибка при генерации\n\n" +
-                            "🎨 Баланс возвращен\n" +
-                            "⚠️ Попробуйте позже или измените запрос"
-            );
-        } finally {
-            // 9. Возвращаем пользователя в главное меню
-            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-        }
-    }*/
-
     /**
      * Асинхронная генерация изображения через Nano Banana Pro (CometAPI)
      * Метод выполняется в отдельном потоке

@@ -1,7 +1,6 @@
 package org.example.nanobananaprobot.bot.service;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
-import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -121,13 +120,6 @@ public class UserStateManager {
     public void removeTempPrompt(Long chatId) {
         tempPrompts.remove(chatId);
     }
-
-   /* public void clearUserData(Long chatId) {
-        userStates.remove(chatId);
-        tempUsernames.remove(chatId);
-        tempEmails.remove(chatId);
-        tempPrompts.remove(chatId);
-    }*/
 
     /**
      * Получить или создать конфигурацию для пользователя

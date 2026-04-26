@@ -14,7 +14,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,16 +92,16 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        // Первая строка — самое главное
+        /* Первая строка — самое главное*/
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("🎨 Создать изображение"));
 
-        // Вторая строка — вспомогательное
+        /* Вторая строка — вспомогательное*/
         KeyboardRow row2 = new KeyboardRow();
         row2.add(new KeyboardButton("💰 Пополнить баланс"));
         row2.add(new KeyboardButton("📋 Примеры промптов"));
 
-        // Третья строка — настройки и инфо
+        /* Третья строка — настройки и инфо*/
         KeyboardRow row3 = new KeyboardRow();
         row3.add(new KeyboardButton("⚙️ Настройки"));
         row3.add(new KeyboardButton("❓ Помощь"));
@@ -211,10 +210,6 @@ public class MenuFactoryImpl implements MenuFactory {
 
             stats += "💰 Баланс токенов: " + tokensBalance + "\n";
             stats += "💵 Стоимость: " + (tokensBalance * 5) + " ₽\n\n";
-
-            /*stats += "*Генерации в этом месяце:*\n";*/      /*пока убираем эту статистику*/
-            /*stats += "🎨 Изображений: 0\n";*/
-            /*stats += "🎥 Видео: 0\n";*/
 
         } else {
             stats += "❌ Данные не найдены";

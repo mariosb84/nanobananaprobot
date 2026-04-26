@@ -102,10 +102,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 }
 
                 case "/invite", "Пригласить друзей → /invite" -> {
-
-                    /* TODO: реализовать приглашение друзей*/
                     sendInviteInfo(chatId);
-                    /*telegramService.sendMessage(chatId, "🔗 Ваша реферальная ссылка:\nhttps://t.me/ваш_бот?start=ref_" + chatId);*/
                     return;
                 }
 
@@ -843,11 +840,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Устанавливаем состояние ожидания загрузки фото*/
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_IMAGE_UPLOAD);
-      /*  telegramService.sendMessage(chatId,
-                "📸 *Загрузите изображение для редактирования:*\n\n" +
-                        "Отправьте изображение, которое хотите изменить.\n" +
-                        "После загрузки введите текстовое описание изменений."
-        );*/
     }
 
     /* НОВЫЙ МЕТОД: Обработка ввода промпта для редактирования*/
@@ -1193,8 +1185,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
     private void handleCommand(Long chatId, String text, org.telegram.telegrambots.meta.api.objects.User telegramUser, String startParam) {
 
-        /*if (text.equals("/start") || text.equals("🏠 Старт")) {*/
-
         if ("/start".equals(text) || "🏠 Старт".equals(text)) {
             handleStartCommand(chatId, telegramUser, startParam);
             return;
@@ -1250,9 +1240,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
 
-        /* Отправляем приветствие с Inline-кнопкой */
-        /*sendWelcomeWithInlineButton(chatId, firstName);*/
-
         /* Проверяем, получал ли пользователь бонус */
         log.info("Checking bonus for user: {}", user.getId());
         boolean bonusReceived = balanceService.isBonusReceived(user.getId());
@@ -1276,7 +1263,7 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
-        /*String text = "👋 Добро пожаловать, " + firstName + "!\n\n" +*/
+
                 String text =
                 "*Nano Banana* - это передовая нейросеть\n" +
                 "для обработки и генерации фото!\n\n" +
@@ -1498,7 +1485,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD.equals(state) ||
                 UserStateManager.STATE_WAITING_MERGE_PROMPT.equals(state) ||
                 UserStateManager.STATE_WAITING_TOKEN_PACKAGE.equals(state) ||            /* Добавить эту строку*/
-                UserStateManager.STATE_WAITING_USER_INPUT.equals(state) ||               // ← ДОБАВИТЬ
+                UserStateManager.STATE_WAITING_USER_INPUT.equals(state) ||               /* ← ДОБАВИТЬ*/
                 UserStateManager.STATE_GENERATION_IN_PROGRESS.equals(state)             /* Для генерации*/
         ) && user != null;
     }
