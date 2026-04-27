@@ -1,5 +1,6 @@
 package org.example.nanobananaprobot.bot.handlers;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
@@ -21,9 +22,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
 
@@ -44,6 +44,11 @@ public class MessageHandlerImpl implements MessageHandler {
     private final CometApiService cometApiService;
 
     private final CostCalculatorService costCalculatorService; /* Добавляем*/
+
+    @Value("${bot.admin.user-ids}")
+    private String adminUserIds;
+
+    private Set<Long> adminIds;
 
     @Value("${tg.username}")
     private String botUsername;
@@ -69,6 +74,38 @@ public class MessageHandlerImpl implements MessageHandler {
         try {
             String userState = stateManager.getUserState(chatId);
             log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
+
+            if (text.equals("/broadcast_photo") && adminIds.contains(chatId)) {
+                stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_BROADCAST_TEXT);
+                telegramService.sendMessage(chatId, "📸 Отправь картинку, которую хочешь разослать");
+                return;
+            }
+
+            if (text.startsWith("/broadcast")) {
+                if (adminIds.contains(chatId)) {
+                    if (text.equals("/broadcast")) {
+                        telegramService.sendMessage(chatId, "ℹ️ Чтобы начать рассылку, используйте команду:\n/broadcast [ваше сообщение]");
+                        return;
+                    }
+                    String messageToSend = text.substring(10);
+                    startBroadcast(chatId, messageToSend);
+                }
+                return;
+            }
+
+            if (adminIds.contains(chatId) && UserStateManager.STATE_WAITING_BROADCAST_TEXT.equals(userState)) {
+                if (text.equals("/cancel")) {
+                    stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                    stateManager.clearBroadcastPhotoId(chatId);
+                    telegramService.sendMessage(chatId, "❌ Рассылка отменена");
+                    return;
+                }
+                String photoId = stateManager.getBroadcastPhotoId(chatId);
+                startBroadcastWithPhoto(chatId, text, photoId);
+                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                stateManager.clearBroadcastPhotoId(chatId);
+                return;
+            }
 
             /* 1. Обрабатываем системные команды*/
             switch (text) {
@@ -127,6 +164,14 @@ public class MessageHandlerImpl implements MessageHandler {
                         /* В остальных случаях — в главное меню*/
                         showMainMenuCompact(chatId);
                         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+                    }
+                    return;
+                }
+
+                case "/stats" -> {
+                    if (adminIds.contains(chatId)) {
+                        long usersCount = userService.countAllUsers();
+                        telegramService.sendMessage(chatId, "📊 Всего пользователей в базе: " + usersCount);
                     }
                     return;
                 }
@@ -1692,6 +1737,74 @@ public class MessageHandlerImpl implements MessageHandler {
             stateManager.clearUserData(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
+    }
+
+    @PostConstruct
+    public void init() {
+        adminIds = Arrays.stream(adminUserIds.split(","))
+                .map(String::trim)
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
+
+        log.info("Администраторы инициализированы: {}", adminIds);
+    }
+
+    @Async
+    public void startBroadcast(Long adminChatId, String message) {
+        log.info("Администратор {} начал рассылку: {}", adminChatId, message);
+        List<User> allUsers = userService.findAll();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (User user : allUsers) {
+            if (user.getTelegramChatId() == null) {
+                continue;
+            }
+
+            try {
+                telegramService.sendMessage(user.getTelegramChatId(), message);
+                successCount++;
+                Thread.sleep(50);
+            } catch (Exception e) {
+                log.warn("Не удалось отправить сообщение пользователю {}: {}", user.getTelegramChatId(), e.getMessage());
+                failCount++;
+            }
+        }
+
+        String report = String.format(
+                "✅ Рассылка завершена!\n\n📨 Отправлено: %d\n❌ Ошибок: %d\n👥 Всего пользователей: %d",
+                successCount, failCount, allUsers.size()
+        );
+        telegramService.sendMessage(adminChatId, report);
+    }
+
+    @Async
+    public void startBroadcastWithPhoto(Long adminChatId, String caption, String photoId) {
+        log.info("Администратор {} начал рассылку с фото: {}", adminChatId, caption);
+        List<User> allUsers = userService.findAll();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (User user : allUsers) {
+            if (user.getTelegramChatId() == null) {
+                continue;
+            }
+
+            try {
+                telegramService.sendPhotoByFileId(user.getTelegramChatId(), photoId, caption);
+                successCount++;
+                Thread.sleep(50);
+            } catch (Exception e) {
+                log.warn("Не удалось отправить фото пользователю {}: {}", user.getTelegramChatId(), e.getMessage());
+                failCount++;
+            }
+        }
+
+        String report = String.format(
+                "✅ Рассылка с фото завершена!\n\n📨 Отправлено: %d\n❌ Ошибок: %d\n👥 Всего пользователей: %d",
+                successCount, failCount, allUsers.size()
+        );
+        telegramService.sendMessage(adminChatId, report);
     }
 
 }

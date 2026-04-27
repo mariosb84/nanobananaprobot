@@ -26,6 +26,8 @@ public class UserStateManager {
     private final Map<Long, List<byte[]>> userMultipleImages = new ConcurrentHashMap<>();
     private final Map<Long, String> mediaGroupIds = new ConcurrentHashMap<>();
 
+    private final Map<Long, String> broadcastPhotoIds = new ConcurrentHashMap<>();
+
     /* УПРОЩЕННЫЕ СОСТОЯНИЯ*/
 
     public static final String STATE_NONE = "NONE";
@@ -70,6 +72,8 @@ public class UserStateManager {
     public static final String STATE_WAITING_RESOLUTION = "WAITING_RESOLUTION";
 
     public static final String STATE_WAITING_EXTRA_PHOTO = "WAITING_EXTRA_PHOTO";
+
+    public static final String STATE_WAITING_BROADCAST_TEXT = "WAITING_BROADCAST_TEXT";
 
     public String getUserState(Long chatId) {
         return userStates.getOrDefault(chatId, STATE_NONE);
@@ -154,7 +158,7 @@ public class UserStateManager {
      * УДАЛИТЬ аннотацию @Override и вызов super.clearUserData()
      */
     public void clearUserData(Long chatId) {
-        // Очищаем ВСЕ данные
+        /* Очищаем ВСЕ данные*/
         userStates.remove(chatId);
         tempUsernames.remove(chatId);
         tempEmails.remove(chatId);
@@ -202,6 +206,18 @@ public class UserStateManager {
 
     public void clearUploadedImage(Long chatId) {
         userUploadedImages.remove(chatId);
+    }
+
+    public void setBroadcastPhotoId(Long chatId, String photoId) {
+        broadcastPhotoIds.put(chatId, photoId);
+    }
+
+    public String getBroadcastPhotoId(Long chatId) {
+        return broadcastPhotoIds.get(chatId);
+    }
+
+    public void clearBroadcastPhotoId(Long chatId) {
+        broadcastPhotoIds.remove(chatId);
     }
 
 }

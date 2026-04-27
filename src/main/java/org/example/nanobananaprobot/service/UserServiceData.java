@@ -245,4 +245,8 @@ public class UserServiceData implements UserService, UserDetailsService {
         return userRepository.countByReferrerId(referrerId);
     }
 
+    public long countAllUsers() {
+        return userRepository.count();
+    }
+
 }

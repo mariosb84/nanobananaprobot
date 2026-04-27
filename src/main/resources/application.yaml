@@ -129,3 +129,8 @@ higgsfield:
 cometapi:
   url: "https://api.cometapi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
   key: ${COMET_API_KEY:sk-MwuE5tWfsaX20dORAPTopKzjvyJRYyccqYEVMK9VUCznbJ9W}
+
+# Tg Bot Administrators
+bot:
+  admin:
+    user-ids: 409923279,7853979722

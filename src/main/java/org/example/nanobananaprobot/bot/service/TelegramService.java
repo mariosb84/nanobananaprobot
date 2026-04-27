@@ -390,6 +390,19 @@ public class TelegramService extends DefaultAbsSender {
         }
     }
 
+    public void sendPhotoByFileId(Long chatId, String fileId, String caption) {
+        try {
+            SendPhoto sendPhoto = new SendPhoto();
+            sendPhoto.setChatId(chatId.toString());
+            sendPhoto.setPhoto(new InputFile(fileId));
+            sendPhoto.setCaption(caption);
+            sendPhoto.setParseMode("Markdown");
+            execute(sendPhoto);
+        } catch (TelegramApiException e) {
+            log.error("Error sending photo by fileId: {}", e.getMessage());
+        }
+    }
+
 }
 
 

@@ -1,5 +1,6 @@
 package org.example.nanobananaprobot.bot;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +22,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -38,6 +38,11 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
     private final MessageHandler messageHandler;
     private final CallbackHandler callbackHandler;
+
+    @Value("${bot.admin.user-ids}")
+    private String adminUserIds;
+
+    private Set<Long> adminIds;
 
     /* ДОБАВИТЬ ЭТИ ПОЛЯ:*/
 
@@ -154,6 +159,14 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
                 return;
             }
 
+            /* Проверяем, что это админ и ждёт картинку для рассылки */
+            if (adminIds.contains(chatId) && UserStateManager.STATE_WAITING_BROADCAST_TEXT.equals(userState)) {
+                userStateManager.setBroadcastPhotoId(chatId, fileId);
+                userStateManager.setUserState(chatId, UserStateManager.STATE_WAITING_BROADCAST_TEXT);
+                telegramService.sendMessage(chatId, "📝 Теперь отправь текст к этой картинке (или /cancel для отмены)");
+                return;
+            }
+
         } catch (Exception e) {
             log.error("Error handling photo upload", e);
             telegramService.sendMessage(chatId, "❌ Ошибка загрузки фото");
@@ -224,6 +237,14 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         message.setReplyMarkup(inlineKeyboard);
 
         telegramService.sendMessage(message);
+    }
+
+    @PostConstruct
+    public void init() {
+        adminIds = Arrays.stream(adminUserIds.split(","))
+                .map(String::trim)
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
     }
 
 }
