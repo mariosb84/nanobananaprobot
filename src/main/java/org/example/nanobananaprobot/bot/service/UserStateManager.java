@@ -28,6 +28,8 @@ public class UserStateManager {
 
     private final Map<Long, String> broadcastPhotoIds = new ConcurrentHashMap<>();
 
+    private final Map<Long, String> broadcastCaptions = new ConcurrentHashMap<>();
+
     /* УПРОЩЕННЫЕ СОСТОЯНИЯ*/
 
     public static final String STATE_NONE = "NONE";
@@ -218,6 +220,18 @@ public class UserStateManager {
 
     public void clearBroadcastPhotoId(Long chatId) {
         broadcastPhotoIds.remove(chatId);
+    }
+
+    public void setBroadcastCaption(Long chatId, String caption) {
+        broadcastCaptions.put(chatId, caption);
+    }
+
+    public String getBroadcastCaption(Long chatId) {
+        return broadcastCaptions.get(chatId);
+    }
+
+    public void clearBroadcastCaption(Long chatId) {
+        broadcastCaptions.remove(chatId);
     }
 
 }

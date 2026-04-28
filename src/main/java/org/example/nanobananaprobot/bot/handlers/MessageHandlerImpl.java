@@ -75,9 +75,15 @@ public class MessageHandlerImpl implements MessageHandler {
             String userState = stateManager.getUserState(chatId);
             log.debug("Handling message - ChatId: {}, Text: {}, State: {}", chatId, text, userState);
 
-            if (text.equals("/broadcast_photo") && adminIds.contains(chatId)) {
+            if (text.equals("/broadcast_photo")) {
+                telegramService.sendMessage(chatId, "ℹ️ Используйте: /broadcast_photo [текст]");
+                return;
+            }
+            if (text.startsWith("/broadcast_photo") && adminIds.contains(chatId)) {
+                String caption = text.substring(15);
+                stateManager.setBroadcastCaption(chatId, caption);
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_BROADCAST_TEXT);
-                telegramService.sendMessage(chatId, "📸 Отправь картинку, которую хочешь разослать");
+                telegramService.sendMessage(chatId, "📸 Теперь отправь картинку для рассылки");
                 return;
             }
 
@@ -1805,6 +1811,21 @@ public class MessageHandlerImpl implements MessageHandler {
                 successCount, failCount, allUsers.size()
         );
         telegramService.sendMessage(adminChatId, report);
+    }
+
+    @Override
+    public void setBroadcastCaption(Long chatId, String caption) {
+        stateManager.setBroadcastCaption(chatId, caption);
+    }
+
+    @Override
+    public String getBroadcastCaption(Long chatId) {
+        return stateManager.getBroadcastCaption(chatId);
+    }
+
+    @Override
+    public void clearBroadcastCaption(Long chatId) {
+        stateManager.clearBroadcastCaption(chatId);
     }
 
 }

@@ -9,6 +9,8 @@ import org.example.nanobananaprobot.bot.handlers.MessageHandler;
 
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.bot.service.UserStateManager;
+import org.example.nanobananaprobot.domain.model.User;
+import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -48,6 +50,8 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
     private final TelegramService telegramService;
     private final UserStateManager userStateManager;
+
+    private final UserServiceData userService;
 
     @Override
     public String getBotUsername() {
@@ -98,16 +102,25 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
      */
 
     private void handlePhotoUpload(Message message) {
+
+        log.info("=== handlePhotoUpload вызван ===");
+
         Long chatId = message.getChatId();
         String userState = userStateManager.getUserState(chatId);
+
+        log.info("userState = {}", userState);
+        log.info("STATE_WAITING_BROADCAST_TEXT = {}", UserStateManager.STATE_WAITING_BROADCAST_TEXT);
+        log.info("equals = {}", UserStateManager.STATE_WAITING_BROADCAST_TEXT.equals(userState));
+
         String mediaGroupId = message.getMediaGroupId();
 
         /* Разрешённые состояния для загрузки фото*/
         boolean isWaitingUserInput = UserStateManager.STATE_WAITING_USER_INPUT.equals(userState);
         boolean isWaitingMultipleUpload = UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD.equals(userState);
         boolean isWaitingSettings = UserStateManager.STATE_WAITING_SETTINGS.equals(userState);
+        boolean isWaitingBroadcast = UserStateManager.STATE_WAITING_BROADCAST_TEXT.equals(userState);
 
-        if (!isWaitingUserInput && !isWaitingMultipleUpload && !isWaitingSettings) {
+        if (!isWaitingUserInput && !isWaitingMultipleUpload && !isWaitingSettings && !isWaitingBroadcast) {
             telegramService.sendMessage(chatId, "❌ Я сейчас не ожидаю загрузку фото.");
             return;
         }
@@ -160,17 +173,44 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
             }
 
             /* Проверяем, что это админ и ждёт картинку для рассылки */
-            if (adminIds.contains(chatId) && UserStateManager.STATE_WAITING_BROADCAST_TEXT.equals(userState)) {
-                userStateManager.setBroadcastPhotoId(chatId, fileId);
-                userStateManager.setUserState(chatId, UserStateManager.STATE_WAITING_BROADCAST_TEXT);
-                telegramService.sendMessage(chatId, "📝 Теперь отправь текст к этой картинке (или /cancel для отмены)");
-                return;
+            log.info("userState = {}", userState);
+            String caption = messageHandler.getBroadcastCaption(chatId);
+            log.info("Проверка рассылки: adminIds.contains={}, caption={}, chatId={}", adminIds.contains(chatId), caption, chatId);
+
+            if (adminIds.contains(chatId) && caption != null) {
+                log.info("Запускаем рассылку с фото: caption={}, fileId={}", caption, fileId);
+                startBroadcastWithPhoto(chatId, caption, fileId);
+                messageHandler.clearBroadcastCaption(chatId);
+                log.info("Рассылка завершена, caption очищен");
+            } else {
+                log.info("Условие не выполнено: adminIds.contains={}, caption={}", adminIds.contains(chatId), caption);
             }
 
         } catch (Exception e) {
             log.error("Error handling photo upload", e);
             telegramService.sendMessage(chatId, "❌ Ошибка загрузки фото");
         }
+    }
+
+    private void startBroadcastWithPhoto(Long adminChatId, String caption, String fileId) {
+        List<User> allUsers = userService.findAll();
+        int success = 0, fail = 0;
+
+        for (User user : allUsers) {
+            if (user.getTelegramChatId() == null) continue;
+            try {
+                telegramService.sendPhotoByFileId(user.getTelegramChatId(), fileId, caption);
+                success++;
+                Thread.sleep(50);
+            } catch (Exception e) {
+                fail++;
+            }
+        }
+
+        telegramService.sendMessage(adminChatId, String.format(
+                "✅ Рассылка с фото завершена!\n📨 Отправлено: %d\n❌ Ошибок: %d\n👥 Всего пользователей: %d",
+                success, fail, allUsers.size()
+        ));
     }
 
     @PreDestroy

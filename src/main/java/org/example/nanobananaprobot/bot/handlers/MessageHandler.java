@@ -10,5 +10,9 @@ public interface MessageHandler {
     boolean isUserAuthorized(Long chatId);
     void showMainMenuCompact(Long chatId);
     void showSettingsMenu(Long chatId);
+    void setBroadcastCaption(Long chatId, String caption);
+    String getBroadcastCaption(Long chatId);
+    void clearBroadcastCaption(Long chatId);
+
 }
 
