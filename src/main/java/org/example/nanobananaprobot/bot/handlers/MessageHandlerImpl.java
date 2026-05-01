@@ -80,7 +80,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             if (text.startsWith("/broadcast_photo") && adminIds.contains(chatId)) {
-                String caption = text.substring(15);
+                String caption = text.substring(16).trim();
                 stateManager.setBroadcastCaption(chatId, caption);
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_BROADCAST_TEXT);
                 telegramService.sendMessage(chatId, "📸 Теперь отправь картинку для рассылки");
