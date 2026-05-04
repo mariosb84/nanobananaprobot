@@ -469,12 +469,14 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
-
     @Override
     public SendMessage showMainMenuCompact(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("📋 Кнопки Меню снизу 👇");
+        /*message.setText("📋 Кнопки Меню снизу 👇");*/
+       /* message.setText("\u200B");*/ /* невидимый символ*/
+       /* message.setText("👆 Нажмите «Приступить»");*/
+        message.setText("Ну что? Приступим?");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         keyboard.setResizeKeyboard(true);

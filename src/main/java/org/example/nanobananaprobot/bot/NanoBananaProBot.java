@@ -14,13 +14,18 @@ import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 
 import java.nio.file.Files;
@@ -279,12 +284,56 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         telegramService.sendMessage(message);
     }
 
-    @PostConstruct
+   /* @PostConstruct
     public void init() {
         adminIds = Arrays.stream(adminUserIds.split(","))
                 .map(String::trim)
                 .map(Long::parseLong)
                 .collect(Collectors.toSet());
+    }*/
+
+    @PostConstruct
+    public void init() {
+        /* Твоя существующая инициализация adminIds*/
+        adminIds = Arrays.stream(adminUserIds.split(","))
+                .map(String::trim)
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
+
+        /* Добавляем команды бота*/
+        setupCommands();
+        setupMenuButton();
+    }
+
+    private void setupCommands() {
+        List<BotCommand> commands = Arrays.asList(
+                new BotCommand("start", "🏠 Начать"),
+                new BotCommand("menu", "📋 Меню"),
+                new BotCommand("buy", "💰 Купить"),
+                new BotCommand("invite", "👥 Пригласить")
+        );
+
+        SetMyCommands setMyCommands = new SetMyCommands();
+        setMyCommands.setCommands(commands);
+
+        try {
+            execute(setMyCommands);
+            log.info("✅ Команды бота установлены");
+        } catch (TelegramApiException e) {
+            log.error("❌ Ошибка установки команд: {}", e.getMessage());
+        }
+    }
+
+    private void setupMenuButton() {
+        SetChatMenuButton setChatMenuButton = new SetChatMenuButton();
+        setChatMenuButton.setMenuButton(MenuButtonCommands.builder().build());
+
+        try {
+            execute(setChatMenuButton);
+            log.info("✅ Меню-кнопка установлена");
+        } catch (TelegramApiException e) {
+            log.error("❌ Ошибка установки меню-кнопки: {}", e.getMessage());
+        }
     }
 
 }
