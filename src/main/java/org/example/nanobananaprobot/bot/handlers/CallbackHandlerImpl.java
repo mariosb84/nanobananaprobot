@@ -43,6 +43,29 @@ public class CallbackHandlerImpl implements CallbackHandler {
         }
     }
 
+/*    @Override
+    public void handleCallback(CallbackQuery callbackQuery) {
+        String data = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChatId();
+
+        log.debug("Handling callback - ChatId: {}, Data: {}", chatId, data);
+
+        try {
+            if (data.startsWith("check_payment_")) {
+                handlePaymentCheckCallback(callbackQuery, data);
+            } else if (data.equals("edit_photo") || data.equals("add_more_photo") ||
+                    data.equals("merge_continue") || data.equals("cancel_photo")) {
+                handlePhotoActions(callbackQuery);
+            } else if ("start_generation".equals(data)) {  *//* ← добавить этот блок*//*
+                handleStartGeneration(callbackQuery);
+            } else {
+                answerCallback(callbackQuery, "❌ Неизвестная команда");
+            }
+        } catch (Exception e) {
+            log.error("Error handling callback: {}", e.getMessage());
+        }
+    }*/
+
     @Override
     public void handleCallback(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
@@ -56,14 +79,51 @@ public class CallbackHandlerImpl implements CallbackHandler {
             } else if (data.equals("edit_photo") || data.equals("add_more_photo") ||
                     data.equals("merge_continue") || data.equals("cancel_photo")) {
                 handlePhotoActions(callbackQuery);
-            } else if ("start_generation".equals(data)) {  /* ← добавить этот блок*/
+            } else if ("start_generation".equals(data)) {
                 handleStartGeneration(callbackQuery);
-            } else {
+            }
+            // ↓↓↓ НОВЫЕ КЕЙСЫ ДЛЯ ПОКУПКИ ТОКЕНОВ ↓↓↓
+            else if (data.startsWith("token_")) {
+                handleTokenPurchaseCallback(callbackQuery);
+            }
+            else if (data.equals("back_to_menu")) {
+                messageHandler.showMainMenuCompact(chatId);
+                answerCallback(callbackQuery, "🏠 Главное меню");
+            }
+            /* ↑↑↑ КОНЕЦ НОВЫХ КЕЙСОВ ↑↑↑*/
+            else {
                 answerCallback(callbackQuery, "❌ Неизвестная команда");
             }
         } catch (Exception e) {
             log.error("Error handling callback: {}", e.getMessage());
         }
+    }
+
+    private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
+        String data = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChatId();
+
+        int tokens = 0;
+        int price = 0;
+
+        switch (data) {
+            case "token_5" -> { tokens = 5; price = 25; }
+            case "token_10" -> { tokens = 10; price = 50; }
+            case "token_30" -> { tokens = 30; price = 150; }
+            case "token_50" -> { tokens = 50; price = 250; }
+            case "token_100" -> { tokens = 100; price = 500; }
+            default -> {
+                answerCallback(callbackQuery, "❌ Неизвестный пакет");
+                return;
+            }
+        }
+
+        paymentHandler.handleTokenPackagePurchase(chatId, String.valueOf(tokens), String.valueOf(price));
+        answerCallback(callbackQuery, "💳 Оформляем покупку...");
+        telegramService.sendMessage(chatId, "💳 *Оплата пакета токенов*\n\n" +
+                "💰 Пакет: " + tokens + " токенов\n" +
+                "💵 Сумма: " + price + " ₽\n\n" +
+                "Ссылка для оплаты будет сформирована...");
     }
 
     private void handleStartGeneration(CallbackQuery callbackQuery) {

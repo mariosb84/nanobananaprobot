@@ -2,6 +2,7 @@ package org.example.nanobananaprobot.bot.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.nanobananaprobot.bot.handlers.MessageHandlerImpl;
 import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
 import org.example.nanobananaprobot.domain.dto.SignInRequest;
 import org.example.nanobananaprobot.domain.dto.SignUpRequest;
@@ -27,6 +28,7 @@ public class AuthService {
     private final TelegramService telegramService;
     private final MenuFactory menuFactory;
     private final GenerationBalanceService balanceService; /* ЗАМЕНЯЕМ*/
+   /* private final MessageHandlerImpl messageHandlerImpl;*/
 
     public void handleLoginCommand(Long chatId) {
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_USERNAME);
@@ -121,7 +123,7 @@ public class AuthService {
 
                 CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS)
                         .execute(() -> {
-                            telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+                           /* messageHandlerImpl.showMainMenu(chatId);*/
                         });
             } else {
                 telegramService.sendMessage(chatId, "❌ Регистрация успешна, но авторизация не удалась. Используйте /login");
@@ -144,7 +146,7 @@ public class AuthService {
                 userService.updateTelegramChatId(username, chatId);
                 stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
                 telegramService.sendMessage(chatId, "✅ Авторизация успешна!");
-                telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+                /*messageHandlerImpl.showMainMenu(chatId);*/
             }
         } catch (InvalidCredentialsException e) {
             telegramService.sendMessage(chatId, "❌ Неверный логин или пароль. /login");

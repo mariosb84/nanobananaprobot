@@ -238,7 +238,8 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Показываем меню после информации*/
         telegramService.sendMessage(message);
-        telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
+       /* telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));*/
+        /*showMainMenu(chatId);*/
     }
 
     private boolean handleInputStates(Long chatId, String text, String userState) {
@@ -1310,7 +1311,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
         telegramService.setMenuButton(chatId);
 
-        showMainMenuCompact(chatId);
+        /*showMainMenuCompact(chatId);*/
     }
 
     private void sendWelcomeWithInlineButton(Long chatId, String firstName) {
@@ -1347,8 +1348,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
     @Override
     public void showMainMenuCompact(Long chatId) {
-        telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));
-        /*menuFactory.showMainMenuCompact(chatId);*/
+        showUserInfo(chatId);
     }
 
     private void handleAuthorizedCommand(Long chatId, String text) {

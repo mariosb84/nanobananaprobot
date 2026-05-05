@@ -10,7 +10,9 @@ import org.example.nanobananaprobot.service.UserServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
@@ -369,7 +371,7 @@ public class MenuFactoryImpl implements MenuFactory {
         text += "• Слияние: база +1 токен за фото\n\n";
         text += "Выберите пакет:";
 
-        message.setText(text);
+       /* message.setText(text);
         message.setParseMode("Markdown");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
@@ -377,7 +379,7 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<KeyboardRow> rows = new ArrayList<>();
 
-        /* Пакеты токенов*/
+        *//* Пакеты токенов*//*
 
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("5 токенов - 25₽"));
@@ -402,6 +404,45 @@ public class MenuFactoryImpl implements MenuFactory {
         message.setReplyMarkup(keyboard);
 
         return message;
+    }*/
+
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        /* Пакеты по 2 в строке*/
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        addButton(row1, "5 токенов - 25₽", "token_5");
+        addButton(row1, "10 токенов - 50₽", "token_10");
+
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        addButton(row2, "30 токенов - 150₽", "token_30");
+        addButton(row2, "50 токенов - 250₽", "token_50");
+
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        addButton(row3, "100 токенов - 500₽", "token_100");
+
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        addButton(row4, "🔙 Назад", "back_to_menu");
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }
+
+    private void addButton(List<InlineKeyboardButton> row, String text, String callbackData) {
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callbackData);
+        row.add(button);
     }
 
     @Override
@@ -454,53 +495,6 @@ public class MenuFactoryImpl implements MenuFactory {
         message.setChatId(chatId.toString());
         message.setText("📋 *Все примеры отправлены!*\n\nВыберите действие:");
         message.setParseMode("Markdown");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-
-        List<KeyboardRow> rows = new ArrayList<>();
-        KeyboardRow rowBack = new KeyboardRow();
-        rowBack.add(new KeyboardButton("🔙 Назад"));
-
-        rows.add(rowBack);
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
-
-        return message;
-    }
-
-    @Override
-    public SendMessage showMainMenuCompact(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        /*message.setText("📋 Кнопки Меню снизу 👇");*/
-       /* message.setText("\u200B");*/ /* невидимый символ*/
-       /* message.setText("👆 Нажмите «Приступить»");*/
-        message.setText("Ну что? Приступим?");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-        keyboard.setOneTimeKeyboard(false);
-
-        List<KeyboardRow> rows = new ArrayList<>();
-
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("Начать → /start"));
-        row1.add(new KeyboardButton("Главное меню → /menu"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("Купить генерации → /buy"));
-        row2.add(new KeyboardButton("Пригласить друзей → /invite"));
-
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("Примеры промптов → /examples"));
-
-        rows.add(row1);
-        rows.add(row2);
-        rows.add(row3);
-
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
 
         return message;
     }

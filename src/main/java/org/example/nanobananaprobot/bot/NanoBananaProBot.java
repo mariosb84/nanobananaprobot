@@ -310,7 +310,8 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
                 new BotCommand("start", "🏠 Начать"),
                 new BotCommand("menu", "📋 Меню"),
                 new BotCommand("buy", "💰 Купить"),
-                new BotCommand("invite", "👥 Пригласить")
+                new BotCommand("invite", "👥 Пригласить"),
+                new BotCommand("examples", "📋 Примеры промптов")
         );
 
         SetMyCommands setMyCommands = new SetMyCommands();
