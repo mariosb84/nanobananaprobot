@@ -371,41 +371,6 @@ public class MenuFactoryImpl implements MenuFactory {
         text += "• Слияние: база +1 токен за фото\n\n";
         text += "Выберите пакет:";
 
-       /* message.setText(text);
-        message.setParseMode("Markdown");
-
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
-
-        List<KeyboardRow> rows = new ArrayList<>();
-
-        *//* Пакеты токенов*//*
-
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("5 токенов - 25₽"));
-        row1.add(new KeyboardButton("10 токенов - 50₽"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("30 токенов - 150₽"));
-        row2.add(new KeyboardButton("50 токенов - 250₽"));
-
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("100 токенов - 500₽"));
-
-        KeyboardRow rowBack = new KeyboardRow();
-        rowBack.add(new KeyboardButton("🔙 Назад"));
-
-        rows.add(row1);
-        rows.add(row2);
-        rows.add(row3);
-        rows.add(rowBack);
-
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
-
-        return message;
-    }*/
-
         message.setText(text);
         message.setParseMode("Markdown");
 

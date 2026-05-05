@@ -43,29 +43,6 @@ public class CallbackHandlerImpl implements CallbackHandler {
         }
     }
 
-/*    @Override
-    public void handleCallback(CallbackQuery callbackQuery) {
-        String data = callbackQuery.getData();
-        Long chatId = callbackQuery.getMessage().getChatId();
-
-        log.debug("Handling callback - ChatId: {}, Data: {}", chatId, data);
-
-        try {
-            if (data.startsWith("check_payment_")) {
-                handlePaymentCheckCallback(callbackQuery, data);
-            } else if (data.equals("edit_photo") || data.equals("add_more_photo") ||
-                    data.equals("merge_continue") || data.equals("cancel_photo")) {
-                handlePhotoActions(callbackQuery);
-            } else if ("start_generation".equals(data)) {  *//* ← добавить этот блок*//*
-                handleStartGeneration(callbackQuery);
-            } else {
-                answerCallback(callbackQuery, "❌ Неизвестная команда");
-            }
-        } catch (Exception e) {
-            log.error("Error handling callback: {}", e.getMessage());
-        }
-    }*/
-
     @Override
     public void handleCallback(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
@@ -82,7 +59,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
             } else if ("start_generation".equals(data)) {
                 handleStartGeneration(callbackQuery);
             }
-            // ↓↓↓ НОВЫЕ КЕЙСЫ ДЛЯ ПОКУПКИ ТОКЕНОВ ↓↓↓
+            /* ↓↓↓ НОВЫЕ КЕЙСЫ ДЛЯ ПОКУПКИ ТОКЕНОВ ↓↓↓*/
             else if (data.startsWith("token_")) {
                 handleTokenPurchaseCallback(callbackQuery);
             }
