@@ -284,14 +284,6 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         telegramService.sendMessage(message);
     }
 
-   /* @PostConstruct
-    public void init() {
-        adminIds = Arrays.stream(adminUserIds.split(","))
-                .map(String::trim)
-                .map(Long::parseLong)
-                .collect(Collectors.toSet());
-    }*/
-
     @PostConstruct
     public void init() {
         /* Твоя существующая инициализация adminIds*/

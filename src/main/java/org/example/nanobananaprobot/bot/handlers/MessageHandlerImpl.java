@@ -1319,8 +1319,8 @@ public class MessageHandlerImpl implements MessageHandler {
                 String text =
                 "*Nano Banana* - это передовая нейросеть\n" +
                 "для обработки и генерации фото!\n\n" +
-                "Отправьте фото с описанием,или\n" +
-                "альбом из фотографий с описанием\n" +
+                "Отправьте фото, или\n" +
+                "альбом из фотографий\n" +
                 "чтобы приступить к генерации 👇";
 
         InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();

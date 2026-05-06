@@ -80,8 +80,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
         String data = callbackQuery.getData();
         Long chatId = callbackQuery.getMessage().getChatId();
 
-        int tokens = 0;
-        int price = 0;
+        int tokens;
+        int price;
 
         switch (data) {
             case "token_5" -> { tokens = 5; price = 25; }
@@ -100,20 +100,19 @@ public class CallbackHandlerImpl implements CallbackHandler {
         telegramService.sendMessage(chatId, "💳 *Оплата пакета токенов*\n\n" +
                 "💰 Пакет: " + tokens + " токенов\n" +
                 "💵 Сумма: " + price + " ₽\n\n" +
-                "Ссылка для оплаты будет сформирована...");
+                "Ссылка для оплаты будет сформирована...", "Markdown");
     }
 
     private void handleStartGeneration(CallbackQuery callbackQuery) {
         Long chatId = callbackQuery.getMessage().getChatId();
 
-        String textToProceed = "Отправьте пожалуйста фото\n" +
-                "с описанием, или альбом из\n" +
-                "фотографий с описанием\n" +
+        String textToProceed = "Отправьте пожалуйста фото,\n" +
+                "или альбом из\n" +
+                "фотографий\n" +
                 "чтобы приступить к генерации 👇\n\n" +
                 "Либо просто введите промпт\n" +
-                "для генерации.👇\n\n" +
-                "Важно - отправьте фото и описание\n" +
-                "одним сообщением!";
+                "для генерации.👇\n"
+               ;
 
         telegramService.sendMessage(chatId, textToProceed);
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_USER_INPUT);

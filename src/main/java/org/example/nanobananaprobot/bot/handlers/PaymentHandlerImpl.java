@@ -282,7 +282,7 @@ public class PaymentHandlerImpl implements PaymentHandler {
                             paymentUrl + "\n\n" +
                             "После успешной оплаты токены добавятся автоматически!";
 
-                    telegramService.sendMessage(chatId, messageText);
+                    telegramService.sendMessage(chatId, messageText, "Markdown");
 
                 } else {
                     telegramService.sendMessage(chatId, "❌ Ошибка создания платежа");
