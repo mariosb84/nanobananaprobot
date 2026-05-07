@@ -13,6 +13,9 @@ public interface MessageHandler {
     void setBroadcastCaption(Long chatId, String caption);
     String getBroadcastCaption(Long chatId);
     void clearBroadcastCaption(Long chatId);
+    void showAspectRatioSelection(Long chatId);
+    void showResolutionSelection(Long chatId);
+    void startGenerationWithCurrentSettings(Long chatId);
 
 }
 

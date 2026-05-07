@@ -155,6 +155,11 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
             /* Альбом или добавление фото для слияния*/
             if (isWaitingUserInput && mediaGroupId != null) {
+
+                /* Очищаем старые данные перед новым альбомом*/
+                userStateManager.clearMultipleImages(chatId);
+                userStateManager.clearUploadedImage(chatId);
+
                 userStateManager.addImageToCollection(chatId, photoBytes, mediaGroupId);
                 int count = userStateManager.getMultipleImages(chatId).size();
                 if (count >= 2) {

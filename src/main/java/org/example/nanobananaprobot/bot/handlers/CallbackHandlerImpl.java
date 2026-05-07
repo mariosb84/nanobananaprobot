@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.bot.service.UserStateManager;
+import org.example.nanobananaprobot.domain.dto.ImageConfig;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -59,7 +60,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
             } else if ("start_generation".equals(data)) {
                 handleStartGeneration(callbackQuery);
             }
-            /* ↓↓↓ НОВЫЕ КЕЙСЫ ДЛЯ ПОКУПКИ ТОКЕНОВ ↓↓↓*/
+            /* Покупка токенов*/
             else if (data.startsWith("token_")) {
                 handleTokenPurchaseCallback(callbackQuery);
             }
@@ -67,7 +68,70 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 messageHandler.showMainMenuCompact(chatId);
                 answerCallback(callbackQuery, "🏠 Главное меню");
             }
-            /* ↑↑↑ КОНЕЦ НОВЫХ КЕЙСОВ ↑↑↑*/
+            /* Настройки */
+            else if (data.equals("settings_format")) {
+                messageHandler.showAspectRatioSelection(chatId);
+                answerCallback(callbackQuery, "✅ Выберите формат");
+            }
+            else if (data.equals("settings_quality")) {
+                messageHandler.showResolutionSelection(chatId);
+                answerCallback(callbackQuery, "✅ Выберите качество");
+            }
+            else if (data.equals("settings_generate")) {
+                messageHandler.startGenerationWithCurrentSettings(chatId);
+                answerCallback(callbackQuery, "✅ Начинаем генерацию");
+            }
+            else if (data.equals("settings_cancel")) {
+                stateManager.clearUserData(chatId);
+                messageHandler.showMainMenuCompact(chatId);
+                answerCallback(callbackQuery, "❌ Отменено");
+            }
+            /* Выбор формата */
+            else if (data.equals("ratio_1_1")) {
+                updateAspectRatio(chatId, "1:1", callbackQuery);
+            }
+            else if (data.equals("ratio_16_9")) {
+                updateAspectRatio(chatId, "16:9", callbackQuery);
+            }
+            else if (data.equals("ratio_21_9")) {
+                updateAspectRatio(chatId, "21:9", callbackQuery);
+            }
+            else if (data.equals("ratio_4_3")) {
+                updateAspectRatio(chatId, "4:3", callbackQuery);
+            }
+            else if (data.equals("ratio_9_16")) {
+                updateAspectRatio(chatId, "9:16", callbackQuery);
+            }
+            else if (data.equals("ratio_2_3")) {
+                updateAspectRatio(chatId, "2:3", callbackQuery);
+            }
+            else if (data.equals("ratio_3_2")) {
+                updateAspectRatio(chatId, "3:2", callbackQuery);
+            }
+            else if (data.equals("ratio_3_4")) {
+                updateAspectRatio(chatId, "3:4", callbackQuery);
+            }
+            else if (data.equals("ratio_4_5")) {
+                updateAspectRatio(chatId, "4:5", callbackQuery);
+            }
+            else if (data.equals("ratio_5_4")) {
+                updateAspectRatio(chatId, "5:4", callbackQuery);
+            }
+            /* Выбор качества */
+            else if (data.equals("res_1K")) {
+                updateResolution(chatId, "1K", callbackQuery);
+            }
+            else if (data.equals("res_2K")) {
+                updateResolution(chatId, "2K", callbackQuery);
+            }
+            else if (data.equals("res_4K")) {
+                updateResolution(chatId, "4K", callbackQuery);
+            }
+            /* Назад к настройкам */
+            else if (data.equals("back_to_settings")) {
+                messageHandler.showSettingsMenu(chatId);
+                answerCallback(callbackQuery, "⚙️ Настройки");
+            }
             else {
                 answerCallback(callbackQuery, "❌ Неизвестная команда");
             }
@@ -157,6 +221,24 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 answerCallback(callbackQuery, "❌ Действие отменено");
             }
         }
+    }
+
+    private void updateAspectRatio(Long chatId, String ratio, CallbackQuery callbackQuery) {
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setAspectRatio(ratio);
+        stateManager.saveConfig(chatId, config);
+
+        messageHandler.showSettingsMenu(chatId);
+        answerCallback(callbackQuery, "✅ Формат изменён на " + ratio);
+    }
+
+    private void updateResolution(Long chatId, String resolution, CallbackQuery callbackQuery) {
+        ImageConfig config = stateManager.getOrCreateConfig(chatId);
+        config.setResolution(resolution);
+        stateManager.saveConfig(chatId, config);
+
+        messageHandler.showSettingsMenu(chatId);
+        answerCallback(callbackQuery, "✅ Качество изменено на " + resolution);
     }
 
 }

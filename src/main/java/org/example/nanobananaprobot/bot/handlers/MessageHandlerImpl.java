@@ -482,81 +482,101 @@ public class MessageHandlerImpl implements MessageHandler {
         showSettingsMenu(chatId);
     }
 
-    private void showAspectRatioSelection(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("📐 *Выберите соотношение сторон:*");
-        message.setParseMode("Markdown");
+    @Override
+    public void showAspectRatioSelection(Long chatId) {
+        String text = "📐 *Выберите соотношение сторон:*";
 
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        List<KeyboardRow> rows = new ArrayList<>();
+        /* Первая строка*/
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        addButton(row1, "📐 1:1 (Квадрат)", "ratio_1_1");
+        addButton(row1, "📐 16:9 (Широкий)", "ratio_16_9");
 
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("📐 1:1 (Квадрат)"));
-        row1.add(new KeyboardButton("📐 16:9 (Широкий)"));
-        row1.add(new KeyboardButton("🎬 21:9 (Кино)"));
-        row1.add(new KeyboardButton("🖥️ 4:3 (Классический)"));
+        /* Вторая строка*/
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        addButton(row2, "🎬 21:9 (Кино)", "ratio_21_9");
+        addButton(row2, "🖥️ 4:3 (Классический)", "ratio_4_3");
 
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("📱 9:16 (Сторис)"));
-        row2.add(new KeyboardButton("📄 2:3 (Портрет)"));
-        row2.add(new KeyboardButton("📷 3:2 (Фото)"));
-        row2.add(new KeyboardButton("📱 3:4 (Смартфон)"));
+        /* Третья строка*/
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        addButton(row3, "📱 9:16 (Сторис)", "ratio_9_16");
+        addButton(row3, "📄 2:3 (Портрет)", "ratio_2_3");
 
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add(new KeyboardButton("📄 4:5 (Вертикальный)"));
-        row3.add(new KeyboardButton("📊 5:4 (Соотношение 5:4)"));
+        /* Четвертая строка*/
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        addButton(row4, "📷 3:2 (Фото)", "ratio_3_2");
+        addButton(row4, "📱 3:4 (Смартфон)", "ratio_3_4");
 
-        KeyboardRow row4 = new KeyboardRow();
-        row4.add(new KeyboardButton("🔙 Назад"));
+        /* Пятая строка*/
+        List<InlineKeyboardButton> row5 = new ArrayList<>();
+        addButton(row5, "📄 4:5 (Вертикальный)", "ratio_4_5");
+        addButton(row5, "📊 5:4 (Соотношение 5:4)", "ratio_5_4");
+
+        /* Шестая строка*/
+        List<InlineKeyboardButton> row6 = new ArrayList<>();
+        addButton(row6, "🔙 Назад", "back_to_settings");
 
         rows.add(row1);
         rows.add(row2);
         rows.add(row3);
         rows.add(row4);
-
+        rows.add(row5);
+        rows.add(row6);
         keyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        message.setParseMode("Markdown");
         message.setReplyMarkup(keyboard);
 
         telegramService.sendMessage(message);
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_ASPECT_RATIO);
     }
 
-    private void showResolutionSelection(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("🖼️ *Выберите качество изображения:*\n\n" +
+    @Override
+    public void showResolutionSelection(Long chatId) {
+        String text = "🖼️ *Выберите качество изображения:*\n\n" +
                 "• 1K — 3 токена (15 ₽)\n" +
                 "• 2K — 4 токена (20 ₽)\n" +
-                "• 4K — 5 токенов (25 ₽)");
-        message.setParseMode("Markdown");
+                "• 4K — 5 токенов (25 ₽)";
 
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        List<KeyboardRow> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        addButton(row1, "🖼️ 1K (Базовое)", "res_1K");
+        addButton(row1, "🖼️ 2K (Качественное)", "res_2K");
+        addButton(row1, "🖼️ 4K (Максимальное)", "res_4K");
 
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("🖼️ 1K (Базовое)"));
-        row1.add(new KeyboardButton("🖼️ 2K (Качественное)"));
-        row1.add(new KeyboardButton("🖼️ 4K (Максимальное)"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("🔙 Назад"));
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        addButton(row2, "🔙 Назад", "back_to_settings");
 
         rows.add(row1);
         rows.add(row2);
-
         keyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        message.setParseMode("Markdown");
         message.setReplyMarkup(keyboard);
 
         telegramService.sendMessage(message);
         stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_RESOLUTION);
     }
 
-    private void startGenerationWithCurrentSettings(Long chatId) {
+    private void addButton(List<InlineKeyboardButton> row, String text, String callbackData) {
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callbackData);
+        row.add(button);
+    }
+
+    @Override
+    public void startGenerationWithCurrentSettings(Long chatId) {
         User user = userService.findByTelegramChatId(chatId);
         if (user == null) {
             telegramService.sendMessage(chatId, "❌ Пользователь не найден");
@@ -690,55 +710,60 @@ public class MessageHandlerImpl implements MessageHandler {
     public void showSettingsMenu(Long chatId) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
 
-        /* Определяем режим по наличию фото*/
+        /* Определяем режим*/
         byte[] image = stateManager.getUploadedImage(chatId);
         List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
 
-        String costText;
         if (multipleImages != null && multipleImages.size() >= 2) {
             config.setMode("merge");
-            costText = costCalculatorService.getMergeDescription(config, multipleImages.size());
         } else if (image != null) {
             config.setMode("edit");
-            costText = costCalculatorService.getDescription(config);
         } else {
             config.setMode("generate");
-            costText = costCalculatorService.getDescription(config);
         }
 
-        String settingsText = "⚙️ *Настройки генерации*\n\n" +
+        String text = "⚙️ *Настройки генерации*\n\n" +
                 "Текущие параметры:\n" +
                 "• Формат: " + config.getAspectRatio() + "\n" +
                 "• Качество: " + config.getResolution() + "\n" +
-                "• Стоимость: " + costText + "\n\n" +
+                "• Стоимость: " + costCalculatorService.getDescription(config) + "\n\n" +
                 "Выберите параметр для изменения:";
 
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(settingsText);
-        message.setParseMode("Markdown");
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-        keyboard.setResizeKeyboard(true);
+        /* Формат и качество в одной строке*/
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        InlineKeyboardButton formatBtn = new InlineKeyboardButton();
+        formatBtn.setText("📐 Формат");
+        formatBtn.setCallbackData("settings_format");
+        row1.add(formatBtn);
 
-        List<KeyboardRow> rows = new ArrayList<>();
+        InlineKeyboardButton qualityBtn = new InlineKeyboardButton();
+        qualityBtn.setText("🖼️ Качество");
+        qualityBtn.setCallbackData("settings_quality");
+        row1.add(qualityBtn);
 
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("📐 Формат"));
-        row1.add(new KeyboardButton("🖼️ Качество"));
+        /* Генерация и отмена*/
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        InlineKeyboardButton generateBtn = new InlineKeyboardButton();
+        generateBtn.setText("✅ Сгенерировать");
+        generateBtn.setCallbackData("settings_generate");
+        row2.add(generateBtn);
 
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("✅ Сгенерировать"));
-        row2.add(new KeyboardButton("🔙 Отмена"));
-
-        KeyboardRow row3 = new KeyboardRow();
-        row2.add(new KeyboardButton("Главное меню → /menu" ));
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Отмена");
+        cancelBtn.setCallbackData("settings_cancel");
+        row2.add(cancelBtn);
 
         rows.add(row1);
         rows.add(row2);
-        rows.add(row3);
-
         keyboard.setKeyboard(rows);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        message.setParseMode("Markdown");
         message.setReplyMarkup(keyboard);
 
         telegramService.sendMessage(message);
