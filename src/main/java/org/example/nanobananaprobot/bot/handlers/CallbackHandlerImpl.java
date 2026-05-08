@@ -198,6 +198,11 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 answerCallback(callbackQuery, "✅ Режим редактирования");
             }
             case "add_more_photo" -> {
+
+                /* Очищаем старые данные перед новым слиянием*/
+                stateManager.clearMultipleImages(chatId);
+                stateManager.clearUploadedImage(chatId);
+
                 /* Переключаемся в режим сбора нескольких фото*/
                 byte[] firstPhoto = stateManager.getUploadedImage(chatId);
                 stateManager.clearUploadedImage(chatId);
