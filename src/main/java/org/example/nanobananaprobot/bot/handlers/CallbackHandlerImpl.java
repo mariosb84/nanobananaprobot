@@ -170,6 +170,10 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private void handleStartGeneration(CallbackQuery callbackQuery) {
         Long chatId = callbackQuery.getMessage().getChatId();
 
+        stateManager.clearMultipleImages(chatId);
+        stateManager.clearUploadedImage(chatId);
+        stateManager.clearTempData(chatId);
+
         String textToProceed = "Отправьте пожалуйста фото,\n" +
                 "или альбом из\n" +
                 "фотографий\n" +
@@ -199,15 +203,27 @@ public class CallbackHandlerImpl implements CallbackHandler {
             }
             case "add_more_photo" -> {
 
+                log.info("=== НАЧАЛО add_more_photo ===");
+                log.info("До очистки: multipleImages size = {}",
+                        stateManager.getMultipleImages(chatId) != null ? stateManager.getMultipleImages(chatId).size() : 0);
+
+                byte[] firstPhoto = stateManager.getUploadedImage(chatId);
+
                 /* Очищаем старые данные перед новым слиянием*/
                 stateManager.clearMultipleImages(chatId);
                 stateManager.clearUploadedImage(chatId);
 
+                log.info("После очистки: multipleImages size = {}",
+                        stateManager.getMultipleImages(chatId) != null ? stateManager.getMultipleImages(chatId).size() : 0);
+
                 /* Переключаемся в режим сбора нескольких фото*/
-                byte[] firstPhoto = stateManager.getUploadedImage(chatId);
+
                 stateManager.clearUploadedImage(chatId);
                 if (firstPhoto != null) {
                     stateManager.addImageToCollection(chatId, firstPhoto, null);
+
+                    log.info("Первое фото добавлено, size = {}",
+                            stateManager.getMultipleImages(chatId).size());
                 }
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MULTIPLE_IMAGES_UPLOAD);
                 telegramService.sendMessage(chatId, "📸 Отправьте следующее фото (нужно минимум 2)");

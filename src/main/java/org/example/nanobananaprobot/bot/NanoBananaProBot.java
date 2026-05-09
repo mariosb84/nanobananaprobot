@@ -156,12 +156,9 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
             /* Альбом или добавление фото для слияния*/
             if (isWaitingUserInput && mediaGroupId != null) {
 
-                /* Очищаем старые данные перед новым альбомом*/
-                userStateManager.clearMultipleImages(chatId);
-                userStateManager.clearUploadedImage(chatId);
-
                 userStateManager.addImageToCollection(chatId, photoBytes, mediaGroupId);
                 int count = userStateManager.getMultipleImages(chatId).size();
+
                 if (count >= 2) {
                     sendMergeContinueButton(chatId, count);
                 } else {
@@ -174,7 +171,13 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
             if (isWaitingMultipleUpload) {
                 userStateManager.addImageToCollection(chatId, photoBytes, null);
                 int count = userStateManager.getMultipleImages(chatId).size();
+
+                log.info("=== WAITING_MULTIPLE_IMAGES_UPLOAD: count = {}", count);
+
                 if (count >= 2) {
+
+                    log.info("=== Вызываем sendMergeContinueButton");
+
                     sendMergeContinueButton(chatId, count);
                 } else {
                     telegramService.sendMessage(chatId, "📸 Отправьте ещё одно фото (нужно минимум 2)");
