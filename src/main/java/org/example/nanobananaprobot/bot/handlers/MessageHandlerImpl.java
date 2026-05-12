@@ -228,7 +228,7 @@ public class MessageHandlerImpl implements MessageHandler {
         String info = "📊 *Ваша статистика*\n\n" +
                 "👤 ID: `" + chatId + "`\n" +
                 "💰 Токенов: " + tokensBalance + "\n" +
-                "🎨 Генераций: " + totalGenerations + "\n\n" +
+                "🎨 Сделано генераций: " + totalGenerations + "\n\n" +
                 "👇 *Выберите действие:*";
 
         SendMessage message = new SendMessage();
@@ -538,24 +538,29 @@ public class MessageHandlerImpl implements MessageHandler {
 
     @Override
     public void showResolutionSelection(Long chatId) {
-        String text = "🖼️ *Выберите качество изображения:*\n\n" +
+        String text = "🖼️ *Выберите качество изображения:*\n\n" /*+
                 "• 1K — 3 токена (15 ₽)\n" +
                 "• 2K — 4 токена (20 ₽)\n" +
-                "• 4K — 5 токенов (25 ₽)";
+                "• 4K — 5 токенов (25 ₽)"*/;
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         List<InlineKeyboardButton> row1 = new ArrayList<>();
-        addButton(row1, "🖼️ 1K (Базовое)", "res_1K");
-        addButton(row1, "🖼️ 2K (Качественное)", "res_2K");
-        addButton(row1, "🖼️ 4K (Максимальное)", "res_4K");
-
         List<InlineKeyboardButton> row2 = new ArrayList<>();
-        addButton(row2, "🔙 Назад", "back_to_settings");
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        addButton(row1, "🖼️ 1K (Базовое)", "res_1K");
+        addButton(row2, "🖼️ 2K (Качественное)", "res_2K");
+        addButton(row3, "🖼️ 4K (Максимальное)", "res_4K");
+
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        addButton(row4, "🔙 Назад", "back_to_settings");
 
         rows.add(row1);
         rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
         keyboard.setKeyboard(rows);
 
         SendMessage message = new SendMessage();
@@ -616,7 +621,7 @@ public class MessageHandlerImpl implements MessageHandler {
             /* Редактирование*/
 
             telegramService.sendMessage(chatId,
-                    "🎨 Редактирую изображение...\n\n" +
+                    "🎨 Генерирую изображение...\n\n" +
                             "📝 Описание изменений: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
                             "⏱️ Это займет ~ около минуты"
@@ -1324,7 +1329,7 @@ public class MessageHandlerImpl implements MessageHandler {
         if (!bonusReceived) {
             telegramService.sendMessage(chatId,
                     "👋 Добро пожаловать, " + firstName + "!\n\n" +
-                    "🎁 Вам начислено 3 бесплатных токена! (1 генерация 1K)\n💰 Баланс: 3 токена");
+                    "🎁 Вам начислено 7 бесплатных токенов! (1 генерация слияния в 4K)\n💰 Баланс: 7 токенов");
             balanceService.markBonusReceived(user.getId());
         } else {
             telegramService.sendMessage(chatId,

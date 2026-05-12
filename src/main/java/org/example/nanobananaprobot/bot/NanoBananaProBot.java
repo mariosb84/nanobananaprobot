@@ -236,9 +236,11 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
 
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         List<InlineKeyboardButton> row = new ArrayList<>();
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
 
         InlineKeyboardButton editBtn = new InlineKeyboardButton();
-        editBtn.setText("📝 Редактировать");
+        editBtn.setText("📝 Сгенерировать");
         editBtn.setCallbackData("edit_photo");
 
         InlineKeyboardButton addBtn = new InlineKeyboardButton();
@@ -250,9 +252,11 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
         cancelBtn.setCallbackData("cancel_photo");
 
         row.add(editBtn);
-        row.add(addBtn);
-        row.add(cancelBtn);
+        row2.add(addBtn);
+        row3.add(cancelBtn);
         rows.add(row);
+        rows.add(row2);
+        rows.add(row3);
 
         inlineKeyboard.setKeyboard(rows);
 

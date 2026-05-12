@@ -62,7 +62,7 @@ public class GenerationService {
                 "🎨 Генерирую изображение...\n\n" +
                         "📝 Промпт: _" + prompt + "_\n" +
                         "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                        "⏱️ Это займет ~от 20 до 59 секунд"
+                        "⏱️ Это займет ~около минуты"
         );
 
         /* 5. Запускаем асинхронную генерацию*/

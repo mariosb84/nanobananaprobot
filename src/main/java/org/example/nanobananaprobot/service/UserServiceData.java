@@ -211,8 +211,8 @@ public class UserServiceData implements UserService, UserDetailsService {
         User savedUser = userRepository.save(newUser);
 
         /* Добавляем 3 токена (бонус не отмечаем, сообщение отправится в handleStartCommand)*/
-        balanceService.addTokens(savedUser.getId(), 3);
-        logger.info("Added 3 free tokens for new user: {}", savedUser.getId());
+        balanceService.addTokens(savedUser.getId(), 7);
+        logger.info("Added 7 free tokens for new user: {}", savedUser.getId());
 
         return savedUser;
     }
