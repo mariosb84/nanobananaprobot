@@ -238,8 +238,6 @@ public class MessageHandlerImpl implements MessageHandler {
 
         /* Показываем меню после информации*/
         telegramService.sendMessage(message);
-       /* telegramService.sendMessage(menuFactory.showMainMenuCompact(chatId));*/
-        /*showMainMenu(chatId);*/
     }
 
     private boolean handleInputStates(Long chatId, String text, String userState) {
@@ -538,10 +536,7 @@ public class MessageHandlerImpl implements MessageHandler {
 
     @Override
     public void showResolutionSelection(Long chatId) {
-        String text = "🖼️ *Выберите качество изображения:*\n\n" /*+
-                "• 1K — 3 токена (15 ₽)\n" +
-                "• 2K — 4 токена (20 ₽)\n" +
-                "• 4K — 5 токенов (25 ₽)"*/;
+        String text = "🖼️ *Выберите качество изображения:*\n\n";
 
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
 
@@ -1329,7 +1324,7 @@ public class MessageHandlerImpl implements MessageHandler {
         if (!bonusReceived) {
             telegramService.sendMessage(chatId,
                     "👋 Добро пожаловать, " + firstName + "!\n\n" +
-                    "🎁 Вам начислено 7 бесплатных токенов! (1 генерация слияния в 4K)\n💰 Баланс: 7 токенов");
+                    "🎁 Вам начислено 7 бесплатных токенов! (одна любая генерация)\n💰 Баланс: 7 токенов");
             balanceService.markBonusReceived(user.getId());
         } else {
             telegramService.sendMessage(chatId,
@@ -1496,8 +1491,6 @@ public class MessageHandlerImpl implements MessageHandler {
             int newBalance = balanceService.getTokensBalance(userId);
 
             /* Отправляем результат*/
-
-            /*telegramService.sendPhoto(chatId, imageBytes, "edited_image.jpg");*/
 
             /* ★ Умная отправка для редактирования тоже*/
 
