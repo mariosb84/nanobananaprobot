@@ -48,7 +48,7 @@ public class MyTaxService {
             log.info("✅ Чек отправлен! Сумма: {} руб., Ссылка: {}", amount, receipt.printUrl());
 
         } catch (Exception e) {
-            log.error("❌ Ошибка отправки чека: {}", e.getMessage());
+            log.error("❌ Ошибка отправки чека: {}", e.getMessage(), e);
         }
     }
 

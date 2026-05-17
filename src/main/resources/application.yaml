@@ -52,13 +52,13 @@ webdrivermanager:
 # YooKassa Payment System
 yookassa:
   # real-shop:
-  #shop-id: ${YOOKASSA_SHOP_ID:1267029}
-  #secret-key: ${YOOKASSA_SECRET_KEY:live_tYv7j1dolfoqX9_xKci2yCflXYAfC5atcSyHJ0AotK4}
-  #test-mode: false
+  shop-id: ${YOOKASSA_SHOP_ID:1267029}
+  secret-key: ${YOOKASSA_SECRET_KEY:live_tYv7j1dolfoqX9_xKci2yCflXYAfC5atcSyHJ0AotK4}
+  test-mode: false
   # test-shop:
-  shop-id: ${YOOKASSA_SHOP_ID:1181320}
-  secret-key: ${YOOKASSA_SECRET_KEY:test_7AfQYlI0WOQVImchsPcaNkIfQdreb47ttSLDTnSqchA}
-  test-mode: true
+  #shop-id: ${YOOKASSA_SHOP_ID:1181320}
+  #secret-key: ${YOOKASSA_SECRET_KEY:test_7AfQYlI0WOQVImchsPcaNkIfQdreb47ttSLDTnSqchA}
+  #test-mode: true
 
 # ProxyAPI для DALL-E 3
 # ВНИМАНИЕ: Никогда не храните ключи прямо в YAML!
@@ -136,5 +136,6 @@ bot:
     user-ids: 409923279,7853979722
 
 # mytax:
-mytax.inn: ${MYTAX_INN:472003462764}
-mytax.password: ${MYTAX_PASSWORD:1984}
+mytax:
+  inn: ${MYTAX_INN:472003462764}
+  password: ${MYTAX_PASSWORD:SB14041984sb@#$}
