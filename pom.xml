@@ -109,6 +109,12 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>ru.loolzaaa.nalog.mytax</groupId>
+			<artifactId>mytax-client</artifactId>
+			<version>0.1.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

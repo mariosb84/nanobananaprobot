@@ -8,6 +8,7 @@ import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.domain.model.User;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -17,6 +18,7 @@ import java.util.concurrent.*;
 @RequiredArgsConstructor
 public class PaymentAutoCheckService {
 
+    private final MyTaxService myTaxService;
     private final YooKassaClient yooKassaClient;
     private final GenerationBalanceService balanceService;
     private final UserServiceData userService;
@@ -124,6 +126,13 @@ public class PaymentAutoCheckService {
             } else if ("tokens".equals(paymentInfo.getPackageType())) {
                 int tokens = Integer.parseInt(paymentInfo.getCount());
                 balanceService.addTokens(user.getId(), tokens);
+
+                /* Отправка чека в Мой налог*/
+                myTaxService.sendReceipt(
+                        "Пакет " + tokens + " токенов",
+                        Double.parseDouble(paymentInfo.getPrice())
+                );
+
                 log.info("Token package activated - User: {}, Tokens: {}, Payment: {}",
                         user.getUsername(), tokens, paymentId);
 

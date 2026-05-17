@@ -134,3 +134,7 @@ cometapi:
 bot:
   admin:
     user-ids: 409923279,7853979722
+
+# mytax:
+mytax.inn: ${MYTAX_INN:472003462764}
+mytax.password: ${MYTAX_PASSWORD:1984}
