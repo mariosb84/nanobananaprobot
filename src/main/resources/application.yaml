@@ -3,9 +3,9 @@ spring:
   application:
     name: nanobananaprobot
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nanobananaprobot_auth}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:SB14041984sb}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -40,8 +40,8 @@ server:
 
 # Telegram Bot
 tg:
-  username: ${TELEGRAM_BOT_USERNAME:NanoBananaProBot_bot}
-  token: ${TELEGRAM_BOT_TOKEN:8527977714:AAFu97URfKY8nc5uwoKlATtGp7xE1V_y6X4}
+  username: ${TELEGRAM_BOT_USERNAME}
+  token: ${TELEGRAM_BOT_TOKEN}
 
 # WebDriver
 webdrivermanager:
@@ -52,8 +52,8 @@ webdrivermanager:
 # YooKassa Payment System
 yookassa:
   # real-shop:
-  shop-id: ${YOOKASSA_SHOP_ID:1267029}
-  secret-key: ${YOOKASSA_SECRET_KEY:live_tYv7j1dolfoqX9_xKci2yCflXYAfC5atcSyHJ0AotK4}
+  shop-id: ${YOOKASSA_SHOP_ID}
+  secret-key: ${YOOKASSA_SECRET_KEY}
   test-mode: false
   # test-shop:
   #shop-id: ${YOOKASSA_SHOP_ID:1181320}
@@ -64,7 +64,7 @@ yookassa:
 # ВНИМАНИЕ: Никогда не храните ключи прямо в YAML!
 # Используйте переменные окружения: export PROXYAPI_KEY="ваш_ключ"
 proxyapi:
-  key: ${PROXYAPI_KEY:sk-R4KbljvvsNuEXYdjqQ4lCBYwTgxVeTin}  # Безопасное хранение ключа
+  key: ${PROXYAPI_KEY}  # Безопасное хранение ключа
 
 # Application Settings
 app:
@@ -124,11 +124,11 @@ image:
     quality: "standard"  # Качество
 
 higgsfield:
-  client-id: ${HIGGSFIELD_CLIENT_ID:a990c48e-9642-4714-aabf-5513b4e51394}
-  client-secret: ${HIGGSFIELD_CLIENT_SECRET:4805a6812bc969f4cc09469ec8939b97933634c1ed0fefac09e87451ebce3603}
+  client-id: ${HIGGSFIELD_CLIENT_ID}
+  client-secret: ${HIGGSFIELD_CLIENT_SECRET}
 cometapi:
   url: "https://api.cometapi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
-  key: ${COMET_API_KEY:sk-MwuE5tWfsaX20dORAPTopKzjvyJRYyccqYEVMK9VUCznbJ9W}
+  key: ${COMET_API_KEY}
 
 # Tg Bot Administrators
 bot:
@@ -137,5 +137,5 @@ bot:
 
 # mytax:
 mytax:
-  inn: ${MYTAX_INN:472003462764}
-  password: ${MYTAX_PASSWORD:SB14041984sb@#$}
+  inn: ${MYTAX_INN}
+  password: ${MYTAX_PASSWORD}
