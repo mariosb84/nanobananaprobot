@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.bot.service.UserStateManager;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -18,6 +19,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private final PaymentHandler paymentHandler;
     private final UserStateManager stateManager;
     private final MessageHandler messageHandler;
+
+    private final TokenConfig tokenConfig;
 
     private void handlePaymentCheckCallback(CallbackQuery callbackQuery, String data) {
         /* Сразу отвечаем на колбэк*/
@@ -140,7 +143,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
         }
     }
 
-    private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
+   /* private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
         Long chatId = callbackQuery.getMessage().getChatId();
 
@@ -153,6 +156,50 @@ public class CallbackHandlerImpl implements CallbackHandler {
             case "token_30" -> { tokens = 30; price = 150; }
             case "token_50" -> { tokens = 50; price = 250; }
             case "token_100" -> { tokens = 100; price = 500; }
+            default -> {
+                answerCallback(callbackQuery, "❌ Неизвестный пакет");
+                return;
+            }
+        }
+
+        paymentHandler.handleTokenPackagePurchase(chatId, String.valueOf(tokens), String.valueOf(price));
+        answerCallback(callbackQuery, "💳 Оформляем покупку...");
+        telegramService.sendMessage(chatId, "💳 *Оплата пакета токенов*\n\n" +
+                "💰 Пакет: " + tokens + " токенов\n" +
+                "💵 Сумма: " + price + " ₽\n\n" +
+                "Ссылка для оплаты будет сформирована...", "Markdown");
+    }*/
+
+    private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
+        String data = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChatId();
+
+        int tokens;
+        int price;
+
+        int pricePerToken = tokenConfig.getPriceRub(); /* получаем цену 1 токена*/
+
+        switch (data) {
+            case "token_5" -> {
+                tokens = 5;
+                price = tokens * pricePerToken;
+            }
+            case "token_10" -> {
+                tokens = 10;
+                price = tokens * pricePerToken;
+            }
+            case "token_30" -> {
+                tokens = 30;
+                price = tokens * pricePerToken;
+            }
+            case "token_50" -> {
+                tokens = 50;
+                price = tokens * pricePerToken;
+            }
+            case "token_100" -> {
+                tokens = 100;
+                price = tokens * pricePerToken;
+            }
             default -> {
                 answerCallback(callbackQuery, "❌ Неизвестный пакет");
                 return;

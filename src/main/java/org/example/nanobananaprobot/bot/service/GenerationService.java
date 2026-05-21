@@ -3,6 +3,7 @@ package org.example.nanobananaprobot.bot.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.*;
 import org.springframework.scheduling.annotation.Async;
@@ -23,6 +24,7 @@ public class GenerationService {
 
     private final CometApiService cometApiService;
     private final CostCalculatorService costCalculatorService; /* Добавить эту строку в поля класса*/
+    private final TokenConfig tokenConfig;
 
     @Transactional
     public void handleImageGeneration(Long chatId, String prompt) {
@@ -42,7 +44,8 @@ public class GenerationService {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно токенов!\n\n" +
                             "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                            "💰 Требуется: " + requiredTokens + " токенов (" + (requiredTokens * 5) + " ₽)\n" +
+                            /*"💰 Требуется: " + requiredTokens + " токенов (" + (requiredTokens * 5) + " ₽)\n" +*/
+                            "💰 Требуется: " + requiredTokens + " токенов (" + (requiredTokens * tokenConfig.getPriceRub()) + " ₽)\n" +
                             "🛒 Купите токены в магазине"
             );
             return;

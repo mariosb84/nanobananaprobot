@@ -19,7 +19,7 @@ public class UserGenerationBalance {
     /* ========== ОСНОВНОЕ ПОЛЕ: БАЛАНС ТОКЕНОВ ==========*/
 
     @Column(name = "tokens_balance", nullable = false)
-    private Integer tokensBalance = 0; // Начинаем с 0 токенов (без бесплатных)
+    private Integer tokensBalance = 0; /* Начинаем с 0 токенов (без бесплатных)*/
 
     /* ========== ПОЛЯ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ==========
      Можно оставить, но они больше не используются в новой системе*/

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.constants.TextConstants;
 import org.example.nanobananaprobot.bot.service.TelegramService;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.UserServiceData;
@@ -38,6 +39,8 @@ public class MenuFactoryImpl implements MenuFactory {
     private final GenerationBalanceService balanceService; /* ЗАМЕНЯЕМ*/
 
     private final TelegramService telegramService;
+
+    private final TokenConfig tokenConfig;
 
     @Override
     public SendMessage createWelcomeMenu(Long chatId) {
@@ -81,7 +84,8 @@ public class MenuFactoryImpl implements MenuFactory {
         String status = "";
         if (user != null) {
             int tokensBalance = balanceService.getTokensBalance(user.getId());
-            status = "🎨 *Баланс:* " + tokensBalance + " токенов (" + (tokensBalance * 5) + " ₽)\n\n";
+            /*status = "🎨 *Баланс:* " + tokensBalance + " токенов (" + (tokensBalance * 5) + " ₽)\n\n";*/
+            status = "🎨 *Баланс:* " + tokensBalance + " токенов (" + (tokensBalance * tokenConfig.getPriceRub()) + " ₽)\n\n";
         }
 
         SendMessage message = new SendMessage();
@@ -211,7 +215,8 @@ public class MenuFactoryImpl implements MenuFactory {
             int tokensBalance = balanceService.getTokensBalance(user.getId());
 
             stats += "💰 Баланс токенов: " + tokensBalance + "\n";
-            stats += "💵 Стоимость: " + (tokensBalance * 5) + " ₽\n\n";
+            /*stats += "💵 Стоимость: " + (tokensBalance * 5) + " ₽\n\n";*/
+            stats += "💵 Стоимость: " + (tokensBalance * tokenConfig.getPriceRub()) + " ₽\n\n";
 
         } else {
             stats += "❌ Данные не найдены";
@@ -244,7 +249,8 @@ public class MenuFactoryImpl implements MenuFactory {
         if (user == null) return "❌ Пользователь не найден";
 
         int tokensBalance = balanceService.getTokensBalance(user.getId());
-        return "💰 Токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)";
+        /*return "💰 Токенов: " + tokensBalance + " (" + (tokensBalance * 5) + " ₽)";*/
+        return "💰 Токенов: " + tokensBalance + " (" + (tokensBalance * tokenConfig.getPriceRub()) + " ₽)";
     }
 
     /*СТАРЫЙ МЕТОД*/
@@ -350,7 +356,7 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
-    @Override
+   /* @Override
     public SendMessage createTokenPackagesMenu(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
@@ -386,7 +392,7 @@ public class MenuFactoryImpl implements MenuFactory {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
-        /* Пакеты по 2 в строке*/
+        *//* Пакеты по 2 в строке*//*
         List<InlineKeyboardButton> row1 = new ArrayList<>();
         addButton(row1, "5 токенов - 25₽", "token_5");
         addButton(row1, "10 токенов - 50₽", "token_10");
@@ -397,6 +403,71 @@ public class MenuFactoryImpl implements MenuFactory {
 
         List<InlineKeyboardButton> row3 = new ArrayList<>();
         addButton(row3, "100 токенов - 500₽", "token_100");
+
+        List<InlineKeyboardButton> row4 = new ArrayList<>();
+        addButton(row4, "🔙 Назад", "back_to_menu");
+
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        rows.add(row4);
+
+        keyboard.setKeyboard(rows);
+        message.setReplyMarkup(keyboard);
+
+        return message;
+    }*/
+
+    @Override
+    public SendMessage createTokenPackagesMenu(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+
+        int pricePerToken = tokenConfig.getPriceRub();
+
+        String text = "💰 *Пакеты токенов*\n\n";
+        text += "1 токен = " + pricePerToken + " ₽\n\n";
+        text += "Пакеты по расчётам:\n";
+        text += "• 5 токенов - " + (5 * pricePerToken) + "₽\n";
+        text += "• 10 токенов - " + (10 * pricePerToken) + "₽\n";
+        text += "• 30 токенов - " + (30 * pricePerToken) + "₽\n";
+        text += "• 50 токенов - " + (50 * pricePerToken) + "₽\n";
+        text += "• 100 токенов - " + (100 * pricePerToken) + "₽\n\n";
+        text += "*Стоимость генераций:*\n\n";
+        text += "*По текстовому описанию:*\n";
+        text += "• 1K: 3 токена (" + (3 * pricePerToken) + "₽)\n";
+        text += "• 2K: 4 токена (" + (4 * pricePerToken) + "₽)\n";
+        text += "• 4K: 5 токенов (" + (5 * pricePerToken) + "₽)\n\n";
+        text += "*По текстовому описанию и фото:*\n";
+        text += "• 1K: 4 токена (" + (4 * pricePerToken) + "₽)\n";
+        text += "• 2K: 5 токенов (" + (5 * pricePerToken) + "₽)\n";
+        text += "• 4K: 6 токенов (" + (6 * pricePerToken) + "₽)\n\n";
+        text += "*Слияние двух фото и текстовое описание:*\n";
+        text += "• 1K: 5 токенов (" + (5 * pricePerToken) + "₽)\n";
+        text += "• 2K: 6 токенов (" + (6 * pricePerToken) + "₽)\n";
+        text += "• 4K: 7 токенов (" + (7 * pricePerToken) + "₽)\n\n";
+        text += "*Слияние более двух фото и текстовое описание:*\n";
+        text += "• + 1 токен за каждое дополнительное фото\n\n";
+        text += "Выберите пакет:";
+
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        /* Пакеты по 2 в строке*/
+
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        addButton(row1, "5 токенов - " + (5 * pricePerToken) + "₽", "token_5");
+        addButton(row1, "10 токенов - " + (10 * pricePerToken) + "₽", "token_10");
+
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        addButton(row2, "30 токенов - " + (30 * pricePerToken) + "₽", "token_30");
+        addButton(row2, "50 токенов - " + (50 * pricePerToken) + "₽", "token_50");
+
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        addButton(row3, "100 токенов - " + (100 * pricePerToken) + "₽", "token_100");
 
         List<InlineKeyboardButton> row4 = new ArrayList<>();
         addButton(row4, "🔙 Назад", "back_to_menu");

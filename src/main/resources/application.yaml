@@ -139,3 +139,8 @@ bot:
 mytax:
   inn: ${MYTAX_INN}
   password: ${MYTAX_PASSWORD}
+
+# token value:
+token:
+  price:
+    rub: 5

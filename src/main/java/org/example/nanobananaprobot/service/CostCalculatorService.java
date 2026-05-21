@@ -1,10 +1,13 @@
 package org.example.nanobananaprobot.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.nanobananaprobot.domain.dto.ImageConfig;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class CostCalculatorService {
 
@@ -34,6 +37,8 @@ public class CostCalculatorService {
     private static final int TOKENS_PER_EXTRA_IMAGE = 1; /* +5 ₽ за каждое доп. фото*/
 
     private static final Logger log = LoggerFactory.getLogger(CostCalculatorService.class);
+
+    private final TokenConfig tokenConfig;
 
     /* ========== ОСНОВНЫЕ МЕТОДЫ РАСЧЁТА ==========*/
 
@@ -145,14 +150,16 @@ public class CostCalculatorService {
      * Конвертирует токены в рубли
      */
     public int tokensToRubles(int tokens) {
-        return tokens * 5; /* 1 токен = 5 ₽*/
+        /*return tokens * 5;*/ /* 1 токен = 5 ₽*/
+        return tokens * tokenConfig.getPriceRub();
     }
 
     /**
      * Конвертирует рубли в токены (при покупке пакетов)
      */
     public int rublesToTokens(int rubles) {
-        return rubles / 5; /* 5 ₽ = 1 токен*/
+        /*return rubles / 5;*/ /* 5 ₽ = 1 токен*/
+        return rubles / tokenConfig.getPriceRub();
     }
 
     /* ========== МЕТОДЫ ДЛЯ ПАКЕТОВ ТОКЕНОВ ==========*/

@@ -7,6 +7,7 @@ import org.example.nanobananaprobot.bot.service.PackageService;
 import org.example.nanobananaprobot.bot.service.PaymentInfo;
 import org.example.nanobananaprobot.bot.service.TelegramService;
 import org.example.nanobananaprobot.domain.dto.PaymentCreateResponse;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.GenerationBalanceService;
 import org.example.nanobananaprobot.service.PaymentAutoCheckService;
@@ -40,6 +41,8 @@ public class PaymentHandlerImpl implements PaymentHandler {
 
     private final Map<String, PaymentInfo> pendingPayments = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
+
+    private final TokenConfig tokenConfig;
 
     @Override
     public void handlePackagePurchase(Long chatId, String packageType, String count) {
@@ -141,7 +144,9 @@ public class PaymentHandlerImpl implements PaymentHandler {
                                 telegramService.sendMessage(chatId,
                                         "✅ Пакет из " + tokens + " токенов добавлен!\n" +
                                                 "💰 Новый баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                                                "💵 Стоимость: " + (balanceService.getTokensBalance(user.getId()) * 5) + " ₽");
+                                                /*"💵 Стоимость: " + (balanceService.getTokensBalance(user.getId()) * 5) + " ₽");*/
+                                                "💵 Стоимость: " + (balanceService.getTokensBalance(user.getId()) *
+                                                tokenConfig.getPriceRub()) + " ₽");
 
                             } else if ("image".equals(paymentInfo.getPackageType())) {
 
@@ -269,7 +274,7 @@ public class PaymentHandlerImpl implements PaymentHandler {
                     String paymentUrl = confirmationUrl != null ? confirmationUrl :
                             this.paymentUrl + paymentResponse.getId();
 
-                    String messageText = "💳 *Оплата пакета токенов*\n\n" +
+                    /*String messageText = "💳 *Оплата пакета токенов*\n\n" +
                             "💰 Пакет: " + tokenCount + " токенов\n" +
                             "💵 Сумма: " + price + " ₽\n\n" +
                             "1 токен = 5 ₽\n\n" +
@@ -277,6 +282,20 @@ public class PaymentHandlerImpl implements PaymentHandler {
                             "• 1K генерация: от 3 токенов (от 15₽)\n" +
                             "• 2K генерация: от 4 токенов (от 20₽)\n" +
                             "• 4K генерация: от 5 токенов (от 25₽)\n\n" +
+                            "🔗 Ссылка для оплаты:\n" +
+                            paymentUrl + "\n\n" +
+                            "После успешной оплаты токены добавятся автоматически!";*/
+
+                    int pricePerToken = tokenConfig.getPriceRub();
+
+                    String messageText = "💳 *Оплата пакета токенов*\n\n" +
+                            "💰 Пакет: " + tokenCount + " токенов\n" +
+                            "💵 Сумма: " + price + " ₽\n\n" +
+                            "1 токен = " + pricePerToken + " ₽\n\n" +
+                            "*Что можно купить:*\n" +
+                            "• 1K генерация: от 3 токенов (от " + (3 * pricePerToken) + "₽)\n" +
+                            "• 2K генерация: от 4 токенов (от " + (4 * pricePerToken) + "₽)\n" +
+                            "• 4K генерация: от 5 токенов (от " + (5 * pricePerToken) + "₽)\n\n" +
                             "🔗 Ссылка для оплаты:\n" +
                             paymentUrl + "\n\n" +
                             "После успешной оплаты токены добавятся автоматически!";

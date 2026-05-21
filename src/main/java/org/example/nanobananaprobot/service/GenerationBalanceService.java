@@ -21,7 +21,7 @@ import java.util.Map;
 public class GenerationBalanceService {
 
     private final UserGenerationBalanceRepository balanceRepository;
-    private final CostCalculatorService costCalculatorService; // Будет создан позже
+    private final CostCalculatorService costCalculatorService; /* Будет создан позже*/
     private final OperationHistoryRepository operationHistoryRepository;
 
     /* ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========*/
