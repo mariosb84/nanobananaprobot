@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.nanobananaprobot.bot.keyboards.MenuFactory;
 import org.example.nanobananaprobot.bot.service.*;
+import org.example.nanobananaprobot.domain.dto.TokenConfig;
 import org.example.nanobananaprobot.domain.model.User;
 import org.example.nanobananaprobot.service.CometApiService;
 import org.example.nanobananaprobot.service.CostCalculatorService;
@@ -40,10 +41,9 @@ public class MessageHandlerImpl implements MessageHandler {
     private final GenerationBalanceService balanceService;
     private final TelegramService telegramService;
     private final MenuFactory menuFactory;
-
     private final CometApiService cometApiService;
-
     private final CostCalculatorService costCalculatorService; /* Добавляем*/
+    private final TokenConfig tokenConfig;
 
     @Value("${bot.admin.user-ids}")
     private String adminUserIds;
@@ -771,7 +771,8 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /* НОВЫЙ МЕТОД: Обработка выбора пакета токенов*/
-    private void handleTokenPackageSelection(Long chatId, String text) {
+
+   /* private void handleTokenPackageSelection(Long chatId, String text) {
         String tokenCount = "";
         String price = "";
 
@@ -805,8 +806,41 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
         }
 
-        /* Создаем платеж*/
+        *//* Создаем платеж*//*
         paymentHandler.handleTokenPackagePurchase(chatId, tokenCount, price);
+        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+    }*/
+
+    private void handleTokenPackageSelection(Long chatId, String text) {
+        int pricePerToken = tokenConfig.getPriceRub();
+        int tokens = 0;
+        int price = 0;
+
+        /* Парсим количество токенов из строки (например, "5 токенов - 25₽" → 5)*/
+
+        if (text.startsWith("5 токенов")) {
+            tokens = 5;
+        } else if (text.startsWith("10 токенов")) {
+            tokens = 10;
+        } else if (text.startsWith("30 токенов")) {
+            tokens = 30;
+        } else if (text.startsWith("50 токенов")) {
+            tokens = 50;
+        } else if (text.startsWith("100 токенов")) {
+            tokens = 100;
+        } else if (text.equals("🔙 Назад")) {
+            showMainMenuCompact(chatId);
+            stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+            return;
+        } else {
+            telegramService.sendMessage(chatId, "Неизвестный пакет");
+            return;
+        }
+
+        price = tokens * pricePerToken;
+
+        /* Создаем платеж*/
+        paymentHandler.handleTokenPackagePurchase(chatId, String.valueOf(tokens), String.valueOf(price));
         stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
     }
 
@@ -844,7 +878,8 @@ public class MessageHandlerImpl implements MessageHandler {
                 stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_MERGE_PROMPT);
                 telegramService.sendMessage(chatId,
                         "✏️ Отлично! Загружено " + images.size() + " фото.\n\n" +
-                                "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                               /* "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +*/
+                                "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                                 "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
                                 "Теперь введите описание для слияния:\n" +
                                 "Пример: 'Наложи человека с фото 2 на фон фото 1 и добавь ему в руки ананас'\n\n" +
@@ -898,7 +933,8 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно токенов!\n\n" +
                             "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            /*"💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +*/
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                             "🛒 Купите токены в магазине"
             );
             return;
@@ -909,7 +945,8 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(chatId,
                 "📸 *Загрузите изображение для редактирования:*\n\n" +
                         "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                        "💰 Стоимость редактирования: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                        /*"💰 Стоимость редактирования: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +*/
+                        "💰 Стоимость редактирования: " + tokensNeeded + " токенов (" + (tokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                         "⚙️ Текущие настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
                         "Отправьте изображение, которое хотите изменить.\n" +
                         "После загрузки введите текстовое описание изменений."
@@ -1440,7 +1477,8 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId,
                     "🎨 *Введите описание для изображения:*\n\n" +
                             "🎨 Баланс: " + userBalance + " токенов\n" +
-                            "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            /*"💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +*/
+                            "💰 Будет списано: " + tokensNeeded + " токенов (" + (tokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                             "⚙️ Текущие настройки: " + costCalculatorService.getDescription(config) + "\n\n" +
                             "Пример: 'Космонавт верхом на лошади в стиле Пикассо'"
             );
@@ -1450,7 +1488,8 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно токенов!\n\n" +
                             "🎨 Баланс: " + userBalance + " токенов\n" +
-                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +
+                            /*"💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * 5) + " ₽)\n" +*/
+                            "💰 Требуется: " + tokensNeeded + " токенов (" + (tokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                             "🛒 Купите токены в магазине"
             );
         }
@@ -1626,7 +1665,8 @@ public class MessageHandlerImpl implements MessageHandler {
             telegramService.sendMessage(chatId,
                     "❌ Недостаточно токенов!\n\n" +
                             "🎨 Баланс: " + userBalance + " токенов\n" +
-                            "💰 Минимально требуется: " + minTokensNeeded + " токенов (" + (minTokensNeeded * 5) + " ₽)\n" +
+                            /*"💰 Минимально требуется: " + minTokensNeeded + " токенов (" + (minTokensNeeded * 5) + " ₽)\n" +*/
+                            "💰 Минимально требуется: " + minTokensNeeded + " токенов (" + (minTokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                             "🛒 Купите токены в магазине"
             );
             return;
@@ -1640,7 +1680,8 @@ public class MessageHandlerImpl implements MessageHandler {
         telegramService.sendMessage(chatId,
                 "🖼️ *Объединение нескольких изображений*\n\n" +
                         "🎨 Баланс: " + balanceService.getTokensBalance(user.getId()) + " токенов\n" +
-                        "💰 Стоимость слияния 2 фото: " + minTokensNeeded + " токенов (" + (minTokensNeeded * 5) + " ₽)\n" +
+                       /* "💰 Стоимость слияния 2 фото: " + minTokensNeeded + " токенов (" + (minTokensNeeded * 5) + " ₽)\n" +*/
+                        "💰 Стоимость слияния 2 фото: " + minTokensNeeded + " токенов (" + (minTokensNeeded * tokenConfig.getPriceRub()) + " ₽)\n" +
                         "📸 Загрузите 2-8 изображений одним сообщением:\n" +
                         "1. Нажмите 'Добавить файл' в Telegram\n" +
                         "2. Выберите несколько изображений\n" +
