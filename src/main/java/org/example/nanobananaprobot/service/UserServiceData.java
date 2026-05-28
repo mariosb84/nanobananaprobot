@@ -193,9 +193,15 @@ public class UserServiceData implements UserService, UserDetailsService {
     }
 
     @Transactional
-    public User findOrCreateByTelegramId(Long chatId) {
+    public User findOrCreateByTelegramId(Long chatId, org.telegram.telegrambots.meta.api.objects.User telegramUser) {
         User user = findByTelegramChatId(chatId);
         if (user != null) {
+            /* Если пользователь уже есть, но first_name пустой — обновляем*/
+            if (telegramUser != null && (user.getFirstName() == null || user.getFirstName().isEmpty())) {
+                user.setFirstName(telegramUser.getFirstName());
+                userRepository.save(user);
+                logger.info("Updated first_name for existing user: {}", user.getId());
+            }
             return user;
         }
 
@@ -208,6 +214,11 @@ public class UserServiceData implements UserService, UserDetailsService {
         /* Генерируем уникальный код приглашения*/
         newUser.setReferralCode(generateReferralCode());
 
+        /* Сохраняем имя из Telegram*/
+        if (telegramUser != null) {
+            newUser.setFirstName(telegramUser.getFirstName());
+        }
+
         User savedUser = userRepository.save(newUser);
 
         /* Добавляем 7 токенов (бонус не отмечаем, сообщение отправится в handleStartCommand)*/
@@ -215,6 +226,12 @@ public class UserServiceData implements UserService, UserDetailsService {
         logger.info("Added 7 free tokens for new user: {}", savedUser.getId());
 
         return savedUser;
+    }
+
+    /* Старый метод для обратной совместимости (если где-то вызывается с одним параметром)*/
+    @Transactional
+    public User findOrCreateByTelegramId(Long chatId) {
+        return findOrCreateByTelegramId(chatId, null);
     }
 
     /* Вспомогательный метод для генерации кода (добавить в тот же класс)*/

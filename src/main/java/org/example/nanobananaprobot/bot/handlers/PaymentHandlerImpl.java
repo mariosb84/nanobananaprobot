@@ -274,18 +274,6 @@ public class PaymentHandlerImpl implements PaymentHandler {
                     String paymentUrl = confirmationUrl != null ? confirmationUrl :
                             this.paymentUrl + paymentResponse.getId();
 
-                    /*String messageText = "💳 *Оплата пакета токенов*\n\n" +
-                            "💰 Пакет: " + tokenCount + " токенов\n" +
-                            "💵 Сумма: " + price + " ₽\n\n" +
-                            "1 токен = 5 ₽\n\n" +
-                            "*Что можно купить:*\n" +
-                            "• 1K генерация: от 3 токенов (от 15₽)\n" +
-                            "• 2K генерация: от 4 токенов (от 20₽)\n" +
-                            "• 4K генерация: от 5 токенов (от 25₽)\n\n" +
-                            "🔗 Ссылка для оплаты:\n" +
-                            paymentUrl + "\n\n" +
-                            "После успешной оплаты токены добавятся автоматически!";*/
-
                     int pricePerToken = tokenConfig.getPriceRub();
 
                     String messageText = "💳 *Оплата пакета токенов*\n\n" +

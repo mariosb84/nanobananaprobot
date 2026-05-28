@@ -133,3 +133,6 @@ ALTER TABLE person ADD COLUMN IF NOT EXISTS referral_code VARCHAR(10) UNIQUE;
 
 -- 15. Добавляем поле для ID пригласившего
 ALTER TABLE person ADD COLUMN IF NOT EXISTS referrer_id INTEGER REFERENCES person(person_id);
+
+-- 16. Добавляем поле для получения имени юзера в БД
+ALTER TABLE person ADD COLUMN first_name VARCHAR(100);

@@ -356,68 +356,6 @@ public class MenuFactoryImpl implements MenuFactory {
         return message;
     }
 
-   /* @Override
-    public SendMessage createTokenPackagesMenu(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-
-        String text = "💰 *Пакеты токенов*\n\n";
-        text += "1 токен = 5 ₽\n\n";
-        text += "Пакеты по расчётам :\n";
-        text += "• 5 токенов - 25₽\n";
-        text += "• 10 токенов - 50₽\n";
-        text += "• 30 токенов - 150₽\n";
-        text += "• 50 токенов - 250₽\n";
-        text += "• 100 токенов - 500₽\n\n";
-        text += "*Стоимость генераций:*\n\n";
-        text += "*По текстовому описанию:*\n";
-        text += "• 1K: 3 токена (15₽)\n";
-        text += "• 2K: 4 токена (20₽)\n";
-        text += "• 4K: 5 токенов (25₽)\n\n";
-        text += "*По текстовому описанию и фото:*\n";
-        text += "• 1K: 4 токена (20₽)\n";
-        text += "• 2K: 5 токенов (25₽)\n";
-        text += "• 4K: 6 токенов (30₽)\n\n";
-        text += "*Слияние двух фото и текстовое описание:*\n";
-        text += "• 1K: 5 токенов (25₽)\n";
-        text += "• 2K: 6 токенов (30₽)\n";
-        text += "• 4K: 7 токенов (35₽)\n\n";
-        text += "*Слияние более двух фото и текстовое описание:*\n";
-        text += "• +1 токен за каждое дополнительное фото\n\n";
-        text += "Выберите пакет:";
-
-        message.setText(text);
-        message.setParseMode("Markdown");
-
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        *//* Пакеты по 2 в строке*//*
-        List<InlineKeyboardButton> row1 = new ArrayList<>();
-        addButton(row1, "5 токенов - 25₽", "token_5");
-        addButton(row1, "10 токенов - 50₽", "token_10");
-
-        List<InlineKeyboardButton> row2 = new ArrayList<>();
-        addButton(row2, "30 токенов - 150₽", "token_30");
-        addButton(row2, "50 токенов - 250₽", "token_50");
-
-        List<InlineKeyboardButton> row3 = new ArrayList<>();
-        addButton(row3, "100 токенов - 500₽", "token_100");
-
-        List<InlineKeyboardButton> row4 = new ArrayList<>();
-        addButton(row4, "🔙 Назад", "back_to_menu");
-
-        rows.add(row1);
-        rows.add(row2);
-        rows.add(row3);
-        rows.add(row4);
-
-        keyboard.setKeyboard(rows);
-        message.setReplyMarkup(keyboard);
-
-        return message;
-    }*/
-
     @Override
     public SendMessage createTokenPackagesMenu(Long chatId) {
         SendMessage message = new SendMessage();

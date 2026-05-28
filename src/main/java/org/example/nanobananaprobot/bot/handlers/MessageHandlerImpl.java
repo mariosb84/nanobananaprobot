@@ -706,70 +706,6 @@ public class MessageHandlerImpl implements MessageHandler {
         }
     }
 
-   /* @Override
-    public void showSettingsMenu(Long chatId) {
-        ImageConfig config = stateManager.getOrCreateConfig(chatId);
-
-        *//* Определяем режим*//*
-        byte[] image = stateManager.getUploadedImage(chatId);
-        List<byte[]> multipleImages = stateManager.getMultipleImages(chatId);
-
-        if (multipleImages != null && multipleImages.size() >= 2) {
-            config.setMode("merge");
-        } else if (image != null) {
-            config.setMode("edit");
-        } else {
-            config.setMode("generate");
-        }
-
-        String text = "⚙️ *Настройки генерации*\n\n" +
-                "Текущие параметры:\n" +
-                "• Формат: " + config.getAspectRatio() + "\n" +
-                "• Качество: " + config.getResolution() + "\n" +
-                "• Стоимость: " + costCalculatorService.getDescription(config) + "\n\n" +
-                "Выберите параметр для изменения:";
-
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        *//* Формат и качество в одной строке*//*
-        List<InlineKeyboardButton> row1 = new ArrayList<>();
-        InlineKeyboardButton formatBtn = new InlineKeyboardButton();
-        formatBtn.setText("📐 Формат");
-        formatBtn.setCallbackData("settings_format");
-        row1.add(formatBtn);
-
-        InlineKeyboardButton qualityBtn = new InlineKeyboardButton();
-        qualityBtn.setText("🖼️ Качество");
-        qualityBtn.setCallbackData("settings_quality");
-        row1.add(qualityBtn);
-
-        *//* Генерация и отмена*//*
-        List<InlineKeyboardButton> row2 = new ArrayList<>();
-        InlineKeyboardButton generateBtn = new InlineKeyboardButton();
-        generateBtn.setText("✅ Сгенерировать");
-        generateBtn.setCallbackData("settings_generate");
-        row2.add(generateBtn);
-
-        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
-        cancelBtn.setText("❌ Отмена");
-        cancelBtn.setCallbackData("settings_cancel");
-        row2.add(cancelBtn);
-
-        rows.add(row1);
-        rows.add(row2);
-        keyboard.setKeyboard(rows);
-
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(text);
-        message.setParseMode("Markdown");
-        message.setReplyMarkup(keyboard);
-
-        telegramService.sendMessage(message);
-        stateManager.setUserState(chatId, UserStateManager.STATE_WAITING_SETTINGS);
-    }*/
-
     @Override
     public void showSettingsMenu(Long chatId) {
         ImageConfig config = stateManager.getOrCreateConfig(chatId);
@@ -839,45 +775,6 @@ public class MessageHandlerImpl implements MessageHandler {
     }
 
     /* НОВЫЙ МЕТОД: Обработка выбора пакета токенов*/
-
-   /* private void handleTokenPackageSelection(Long chatId, String text) {
-        String tokenCount = "";
-        String price = "";
-
-        switch (text) {
-            case "5 токенов - 25₽":
-                tokenCount = "5";
-                price = "25";
-                break;
-            case "10 токенов - 50₽":
-                tokenCount = "10";
-                price = "50";
-                break;
-            case "30 токенов - 150₽":
-                tokenCount = "30";
-                price = "150";
-                break;
-            case "50 токенов - 250₽":
-                tokenCount = "50";
-                price = "250";
-                break;
-            case "100 токенов - 500₽":
-                tokenCount = "100";
-                price = "500";
-                break;
-            case "🔙 Назад":
-                showMainMenuCompact(chatId);
-                stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-                return;
-            default:
-                telegramService.sendMessage(chatId, "Неизвестный пакет");
-                return;
-        }
-
-        *//* Создаем платеж*//*
-        paymentHandler.handleTokenPackagePurchase(chatId, tokenCount, price);
-        stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
-    }*/
 
     private void handleTokenPackageSelection(Long chatId, String text) {
         int pricePerToken = tokenConfig.getPriceRub();
@@ -1405,7 +1302,9 @@ public class MessageHandlerImpl implements MessageHandler {
         stateManager.clearUserData(chatId);
 
         /* Создаём или получаем пользователя */
-        User user = userService.findOrCreateByTelegramId(chatId);
+
+        /*User user = userService.findOrCreateByTelegramId(chatId);*/
+        User user = userService.findOrCreateByTelegramId(chatId, telegramUser);
 
         /* Обработка реферального параметра*/
         if (startParam != null && startParam.startsWith("ref_")) {
@@ -1603,12 +1502,30 @@ public class MessageHandlerImpl implements MessageHandler {
 
             telegramService.sendImageSmart(chatId, imageBytes, "edited_image.jpg", config);
 
-            telegramService.sendMessage(chatId,
+            /* Создаём inline-кнопку*/
+            InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+            List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+            List<InlineKeyboardButton> row = new ArrayList<>();
+
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText("🎨 Сгенерировать ещё");
+            button.setCallbackData("generate_more");
+            row.add(button);
+            rows.add(row);
+            inlineKeyboard.setKeyboard(rows);
+
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId.toString());
+            message.setParseMode("Markdown");
+            message.setText(
                     "✅ Изображение отредактировано!\n\n" +
                             "📝 Описание изменений: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                            "🎨 Осталось генераций: " + newBalance
+                            "🎨 Осталось токенов: " + newBalance
             );
+            message.setReplyMarkup(inlineKeyboard);
+
+            telegramService.sendMessage(message);
 
             log.info("Редактирование успешно для chatId: {}", chatId);
 
@@ -1843,14 +1760,32 @@ public class MessageHandlerImpl implements MessageHandler {
 
             telegramService.sendImageSmart(chatId, resultImage, "merged_image.jpg", config);
 
-            telegramService.sendMessage(chatId,
+            /* Создаём inline-кнопку*/
+            InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+            List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+            List<InlineKeyboardButton> row = new ArrayList<>();
+
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText("🎨 Сгенерировать ещё");
+            button.setCallbackData("generate_more");
+            row.add(button);
+            rows.add(row);
+            inlineKeyboard.setKeyboard(rows);
+
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId.toString());
+            message.setParseMode("Markdown");
+            message.setText(
                     "✅ Изображения успешно объединены!\n\n" +
                             "📝 Описание: _" + prompt + "_\n" +
                             "🖼️ Объединено фото: " + images.size() + "\n" +
-                           /* "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +*/
+                            /* "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +*/
                             "⚙️ Настройки: " + costCalculatorService.getMergeDescription(config, images.size()) + "\n" +
-                            "🎨 Осталось генераций: " + newBalance
+                            "🎨 Осталось токенов: " + newBalance
             );
+            message.setReplyMarkup(inlineKeyboard);
+
+            telegramService.sendMessage(message);
 
             log.info("Слияние успешно для chatId: {}", chatId);
 

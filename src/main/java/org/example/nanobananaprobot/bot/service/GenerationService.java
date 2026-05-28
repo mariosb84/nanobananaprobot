@@ -9,6 +9,12 @@ import org.example.nanobananaprobot.service.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -105,12 +111,30 @@ public class GenerationService {
 
             /* 5. Отправляем текстовое подтверждение с информацией о настройках*/
 
-            telegramService.sendMessage(chatId,
+            /* Создаём inline-кнопку*/
+            InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
+            List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+            List<InlineKeyboardButton> row = new ArrayList<>();
+
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText("🎨 Сгенерировать ещё");
+            button.setCallbackData("generate_more");
+            row.add(button);
+            rows.add(row);
+            inlineKeyboard.setKeyboard(rows);
+
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId.toString());
+            message.setParseMode("Markdown");
+            message.setText(
                     "✅ Изображение готово!\n\n" +
                             "📝 Промпт: _" + prompt + "_\n" +
                             "⚙️ Настройки: " + costCalculatorService.getDescription(config) + "\n" +
-                            "🎨 Осталось генераций: " + newBalance
+                            "🎨 Осталось токенов: " + newBalance
             );
+            message.setReplyMarkup(inlineKeyboard);
+
+            telegramService.sendMessage(message);
 
             log.info("Генерация через CometAPI успешна для chatId: {}, размер изображения: {} байт",
                     chatId, imageBytes.length);

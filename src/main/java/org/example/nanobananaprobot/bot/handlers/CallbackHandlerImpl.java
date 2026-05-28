@@ -63,6 +63,11 @@ public class CallbackHandlerImpl implements CallbackHandler {
             } else if ("start_generation".equals(data)) {
                 handleStartGeneration(callbackQuery);
             }
+
+            else if ("generate_more".equals(data)) {
+                handleStartGeneration(callbackQuery);
+            }
+
             /* Покупка токенов*/
             else if (data.startsWith("token_")) {
                 handleTokenPurchaseCallback(callbackQuery);
@@ -142,33 +147,6 @@ public class CallbackHandlerImpl implements CallbackHandler {
             log.error("Error handling callback: {}", e.getMessage());
         }
     }
-
-   /* private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
-        String data = callbackQuery.getData();
-        Long chatId = callbackQuery.getMessage().getChatId();
-
-        int tokens;
-        int price;
-
-        switch (data) {
-            case "token_5" -> { tokens = 5; price = 25; }
-            case "token_10" -> { tokens = 10; price = 50; }
-            case "token_30" -> { tokens = 30; price = 150; }
-            case "token_50" -> { tokens = 50; price = 250; }
-            case "token_100" -> { tokens = 100; price = 500; }
-            default -> {
-                answerCallback(callbackQuery, "❌ Неизвестный пакет");
-                return;
-            }
-        }
-
-        paymentHandler.handleTokenPackagePurchase(chatId, String.valueOf(tokens), String.valueOf(price));
-        answerCallback(callbackQuery, "💳 Оформляем покупку...");
-        telegramService.sendMessage(chatId, "💳 *Оплата пакета токенов*\n\n" +
-                "💰 Пакет: " + tokens + " токенов\n" +
-                "💵 Сумма: " + price + " ₽\n\n" +
-                "Ссылка для оплаты будет сформирована...", "Markdown");
-    }*/
 
     private void handleTokenPurchaseCallback(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();

@@ -83,6 +83,9 @@ public class   User implements UserDetails {
     @Column(name = "referrer_id")
     private Long referrerId;
 
+    @Column(name = "first_name")
+    private String firstName;
+
     @Override
     public String getUsername() {
         return username;
