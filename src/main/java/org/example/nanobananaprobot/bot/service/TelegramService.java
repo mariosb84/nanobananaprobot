@@ -130,6 +130,18 @@ public class TelegramService extends DefaultAbsSender {
     }
 
     /**
+     * Отправка медиагруппы (альбома) из готового SendMediaGroup
+     */
+    public void sendMediaGroup(SendMediaGroup sendMediaGroup) {
+        try {
+            execute(sendMediaGroup);
+            log.info("✅ Отправлена медиа-группа");
+        } catch (TelegramApiException e) {
+            log.error("❌ Ошибка отправки медиа-группы: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Отправка фото (для изображений до 10MB)
      */
     public void sendPhoto(Long chatId, byte[] photoBytes, String fileName) {
