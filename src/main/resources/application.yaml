@@ -133,7 +133,7 @@ cometapi:
 # Tg Bot Administrators
 bot:
   admin:
-    user-ids: 409923279,56408152
+    user-ids: ${ADMIN_USER_IDS}
 
 # mytax:
 mytax:

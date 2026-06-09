@@ -224,6 +224,10 @@ public class NanoBananaProBot extends TelegramLongPollingBot {
                 "✅ Рассылка с фото завершена!\n📨 Отправлено: %d\n❌ Ошибок: %d\n👥 Всего пользователей: %d",
                 success, fail, allUsers.size()
         ));
+
+        /* ← ДОБАВИТЬ ЭТУ СТРОЧКУ*/
+        userStateManager.setUserState(adminChatId, UserStateManager.STATE_AUTHORIZED_MAIN);
+
     }
 
     @PreDestroy
