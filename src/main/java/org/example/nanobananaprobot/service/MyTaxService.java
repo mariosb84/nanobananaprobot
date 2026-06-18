@@ -33,6 +33,10 @@ public class MyTaxService {
             config.setPrefix("NanoBananaBot");
             config.setZoneOffset("+3");
 
+            /* Настройка прокси */
+            config.setProxyHost("94.141.162.141");
+            config.setProxyPort(8888);
+
             /* Создаём клиента*/
 
             MyTaxClient client = new MyTaxClient(config);
