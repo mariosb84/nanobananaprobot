@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,20 @@ public class GenerationBalanceService {
     @Transactional
     public void finishGeneration(Long userId) {
         setGenerationInProgress(userId, false);
+    }
+
+    @Transactional
+    public UserGenerationBalance getOrCreateBalanceForUpdate(Long userId) {
+        return balanceRepository.findByUserIdForUpdate(userId)
+                .orElseGet(() -> {
+                    UserGenerationBalance newBalance = new UserGenerationBalance();
+                    newBalance.setUserId(userId);
+                    newBalance.setTokensBalance(0);
+                    newBalance.setImageBalance(0);
+                    newBalance.setVideoBalance(0);
+                    newBalance.setTrialUsed(true);
+                    return balanceRepository.save(newBalance);
+                });
     }
 
     /* ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========*/
@@ -132,18 +147,26 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageGeneration(Long userId, ImageConfig config) {
-        if (isGenerationInProgress(userId)) {
-            log.warn("❌ Генерация уже выполняется для userId: {}, повторный запрос отклонён", userId);
+        /* Блокируем строку баланса*/
+        UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+        if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
+            log.warn("❌ Генерация уже выполняется для userId: {}", userId);
             return false;
         }
+        /* Сразу ставим флаг*/
+        balance.setGenerationInProgress(true);
+        balanceRepository.save(balance);
+
         int requiredTokens = costCalculatorService.calculateTokens(config);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
-            setGenerationInProgress(userId, true); /* Блокируем повторный вход*/
-            Map<String, Object> details = new java.util.HashMap<>();
+            Map<String, Object> details = new HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());
             recordOperation(userId, "generate", -requiredTokens, getTokensBalance(userId), details);
+        } else {
+            /* Если списание не удалось, снимаем блокировку*/
+            setGenerationInProgress(userId, false);
         }
         return success;
     }
@@ -163,19 +186,24 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageEdit(Long userId, ImageConfig config) {
-        if (isGenerationInProgress(userId)) {
-            log.warn("❌ Редактирование уже выполняется для userId: {}, повторный запрос отклонён", userId);
+        UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+        if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
+            log.warn("❌ Редактирование уже выполняется для userId: {}", userId);
             return false;
         }
+        balance.setGenerationInProgress(true);
+        balanceRepository.save(balance);
+
         config.setMode("edit");
         int requiredTokens = costCalculatorService.calculateTokens(config);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
-            setGenerationInProgress(userId, true);
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());
             recordOperation(userId, "edit", -requiredTokens, getTokensBalance(userId), details);
+        } else {
+            setGenerationInProgress(userId, false);
         }
         return success;
     }
@@ -191,19 +219,24 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageMerge(Long userId, ImageConfig config, int imageCount) {
-        if (isGenerationInProgress(userId)) {
-            log.warn("❌ Слияние уже выполняется для userId: {}, повторный запрос отклонён", userId);
+        UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+        if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
+            log.warn("❌ Слияние уже выполняется для userId: {}", userId);
             return false;
         }
+        balance.setGenerationInProgress(true);
+        balanceRepository.save(balance);
+
         int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
-            setGenerationInProgress(userId, true);
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());
             details.put("imageCount", imageCount);
             recordOperation(userId, "merge", -requiredTokens, getTokensBalance(userId), details);
+        } else {
+            setGenerationInProgress(userId, false);
         }
         return success;
     }

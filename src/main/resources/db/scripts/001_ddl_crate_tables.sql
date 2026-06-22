@@ -138,4 +138,4 @@ ALTER TABLE person ADD COLUMN IF NOT EXISTS referrer_id INTEGER REFERENCES perso
 ALTER TABLE person ADD COLUMN first_name VARCHAR(100);
 
 -- 17. Добавление поля блокировки для предотвращения дублирующих списаний
-ALTER TABLE user_generation_balance ADD COLUMN IF NOT EXISTS generation_in_progress BOOLEAN DEFAULT FALSE;
+--ALTER TABLE user_generation_balance ADD COLUMN IF NOT EXISTS generation_in_progress BOOLEAN DEFAULT FALSE;
