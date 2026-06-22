@@ -44,6 +44,9 @@ public class UserGenerationBalance {
     @Column(name = "bonus_received", nullable = false)
     private Boolean bonusReceived = false;
 
+    @Column(name = "generation_in_progress", nullable = false)
+    private Boolean generationInProgress = false;
+
     /* ========== МЕТОД ДЛЯ АВТООБНОВЛЕНИЯ ВРЕМЕНИ ==========*/
 
     @PreUpdate

@@ -24,6 +24,33 @@ public class GenerationBalanceService {
     private final CostCalculatorService costCalculatorService; /* Будет создан позже*/
     private final OperationHistoryRepository operationHistoryRepository;
 
+
+    /**
+     * Проверка, выполняется ли уже генерация/редактирование/слияние для пользователя
+     */
+    private boolean isGenerationInProgress(Long userId) {
+        UserGenerationBalance balance = getOrCreateBalance(userId);
+        return Boolean.TRUE.equals(balance.getGenerationInProgress());
+    }
+
+    /**
+     * Установить флаг блокировки
+     */
+    private void setGenerationInProgress(Long userId, boolean inProgress) {
+        UserGenerationBalance balance = getOrCreateBalance(userId);
+        balance.setGenerationInProgress(inProgress);
+        balanceRepository.save(balance);
+    }
+
+    /**
+     * Сброс блокировки после завершения операции.
+     * Вызывается снаружи (в GenerationService / MessageHandlerImpl) в блоке finally.
+     */
+    @Transactional
+    public void finishGeneration(Long userId) {
+        setGenerationInProgress(userId, false);
+    }
+
     /* ========== БАЗОВЫЕ МЕТОДЫ ДЛЯ ТОКЕНОВ ==========*/
 
     @Transactional
@@ -105,9 +132,14 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageGeneration(Long userId, ImageConfig config) {
+        if (isGenerationInProgress(userId)) {
+            log.warn("❌ Генерация уже выполняется для userId: {}, повторный запрос отклонён", userId);
+            return false;
+        }
         int requiredTokens = costCalculatorService.calculateTokens(config);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
+            setGenerationInProgress(userId, true); /* Блокируем повторный вход*/
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());
@@ -131,10 +163,15 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageEdit(Long userId, ImageConfig config) {
+        if (isGenerationInProgress(userId)) {
+            log.warn("❌ Редактирование уже выполняется для userId: {}, повторный запрос отклонён", userId);
+            return false;
+        }
         config.setMode("edit");
         int requiredTokens = costCalculatorService.calculateTokens(config);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
+            setGenerationInProgress(userId, true);
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());
@@ -154,9 +191,14 @@ public class GenerationBalanceService {
 
     @Transactional
     public boolean useImageMerge(Long userId, ImageConfig config, int imageCount) {
+        if (isGenerationInProgress(userId)) {
+            log.warn("❌ Слияние уже выполняется для userId: {}, повторный запрос отклонён", userId);
+            return false;
+        }
         int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
         boolean success = useTokens(userId, requiredTokens);
         if (success) {
+            setGenerationInProgress(userId, true);
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("resolution", config.getResolution());
             details.put("aspectRatio", config.getAspectRatio());

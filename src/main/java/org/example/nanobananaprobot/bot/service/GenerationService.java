@@ -162,6 +162,10 @@ public class GenerationService {
 
             /* 8. Возвращаем пользователя в главное меню*/
 
+            /* И Снимаем блокировку генерации*/
+
+            balanceService.finishGeneration(userId);
+
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
     }

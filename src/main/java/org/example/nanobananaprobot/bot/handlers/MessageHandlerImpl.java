@@ -1549,7 +1549,7 @@ public class MessageHandlerImpl implements MessageHandler {
         } finally {
 
             /* Очищаем временное изображение*/
-
+            balanceService.finishGeneration(userId);
             stateManager.clearUserData(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
@@ -1808,6 +1808,7 @@ public class MessageHandlerImpl implements MessageHandler {
                             "⚠️ Попробуйте позже или используйте другое описание"
             );
         } finally {
+            balanceService.finishGeneration(userId);
             stateManager.clearUserData(chatId);
             stateManager.setUserState(chatId, UserStateManager.STATE_AUTHORIZED_MAIN);
         }
