@@ -97,32 +97,73 @@ public class GenerationBalanceService {
     /**
      * Списывает токены за генерацию изображения
      */
-    @Transactional
+   /* @Transactional
     public boolean useImageGeneration(Long userId, ImageConfig config) {
         int requiredTokens = costCalculatorService.calculateTokens(config);
         return useTokens(userId, requiredTokens);
+    }*/
+
+    @Transactional
+    public boolean useImageGeneration(Long userId, ImageConfig config) {
+        int requiredTokens = costCalculatorService.calculateTokens(config);
+        boolean success = useTokens(userId, requiredTokens);
+        if (success) {
+            Map<String, Object> details = new java.util.HashMap<>();
+            details.put("resolution", config.getResolution());
+            details.put("aspectRatio", config.getAspectRatio());
+            recordOperation(userId, "generate", -requiredTokens, getTokensBalance(userId), details);
+        }
+        return success;
     }
 
     /**
      * Списывает токены за редактирование изображения
      */
-    @Transactional
+   /* @Transactional
     public boolean useImageEdit(Long userId, ImageConfig config) {
 
-        /* Для редактирования устанавливаем режим*/
+        *//* Для редактирования устанавливаем режим*//*
 
         config.setMode("edit");
         int requiredTokens = costCalculatorService.calculateTokens(config);
         return useTokens(userId, requiredTokens);
+    }*/
+
+    @Transactional
+    public boolean useImageEdit(Long userId, ImageConfig config) {
+        config.setMode("edit");
+        int requiredTokens = costCalculatorService.calculateTokens(config);
+        boolean success = useTokens(userId, requiredTokens);
+        if (success) {
+            Map<String, Object> details = new java.util.HashMap<>();
+            details.put("resolution", config.getResolution());
+            details.put("aspectRatio", config.getAspectRatio());
+            recordOperation(userId, "edit", -requiredTokens, getTokensBalance(userId), details);
+        }
+        return success;
     }
 
     /**
      * Списывает токены за слияние изображений
      */
-    @Transactional
+    /*@Transactional
     public boolean useImageMerge(Long userId, ImageConfig config, int imageCount) {
         int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
         return useTokens(userId, requiredTokens);
+    }*/
+
+    @Transactional
+    public boolean useImageMerge(Long userId, ImageConfig config, int imageCount) {
+        int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
+        boolean success = useTokens(userId, requiredTokens);
+        if (success) {
+            Map<String, Object> details = new java.util.HashMap<>();
+            details.put("resolution", config.getResolution());
+            details.put("aspectRatio", config.getAspectRatio());
+            details.put("imageCount", imageCount);
+            recordOperation(userId, "merge", -requiredTokens, getTokensBalance(userId), details);
+        }
+        return success;
     }
 
     /**
@@ -211,9 +252,16 @@ public class GenerationBalanceService {
     /**
      * Возвращает токены при ошибке генерации
      */
+    /*@Transactional
+    public void refundTokens(Long userId, int tokens) {
+        addTokens(userId, tokens);
+        log.info("Возвращено {} токенов userId: {}", tokens, userId);
+    }*/
+
     @Transactional
     public void refundTokens(Long userId, int tokens) {
         addTokens(userId, tokens);
+        recordOperation(userId, "refund", tokens, getTokensBalance(userId), Map.of("reason", "comet_api_error"));
         log.info("Возвращено {} токенов userId: {}", tokens, userId);
     }
 

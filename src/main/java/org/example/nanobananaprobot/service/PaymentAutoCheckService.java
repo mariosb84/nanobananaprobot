@@ -127,6 +127,9 @@ public class PaymentAutoCheckService {
                 int tokens = Integer.parseInt(paymentInfo.getCount());
                 balanceService.addTokens(user.getId(), tokens);
 
+                balanceService.recordOperation(user.getId(), "purchase", tokens, balanceService.getTokensBalance(user.getId()),
+                        java.util.Map.of("tokens", tokens, "price", paymentInfo.getPrice()));
+
                 /* Отправка чека в Мой налог*/
                 myTaxService.sendReceipt(
                         "Пакет " + tokens + " токенов",
@@ -143,6 +146,10 @@ public class PaymentAutoCheckService {
                     int bonusTokens = (int) (tokens * 0.2);
                     if (bonusTokens > 0) {
                         balanceService.addTokens(referrerId, bonusTokens);
+
+                        balanceService.recordOperation(referrerId, "bonus", bonusTokens, balanceService.getTokensBalance(referrerId),
+                                java.util.Map.of("type", "referral", "from", user.getId()));
+
                         log.info("Referral bonus: {} токенов начислено пригласившему (ID: {})", bonusTokens, referrerId);
 
                         /* Отправить уведомление пригласившему*/
