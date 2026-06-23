@@ -607,9 +607,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageMerge(userId, config, imageCount);
-            int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
+           /* int requiredTokens = costCalculatorService.calculateMergeTokens(config, imageCount);
             balanceService.recordOperation(userId, "merge", -requiredTokens, balanceService.getTokensBalance(userId),
-                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt, "imageCount", imageCount));
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt, "imageCount", imageCount));*/
 
             startAsyncImageMerge(chatId, userId, multipleImages, prompt, config);
         } else if (singleImage != null) {
@@ -628,9 +628,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageEdit(userId, config);
-            int requiredTokens = costCalculatorService.calculateTokens(config);
+            /*int requiredTokens = costCalculatorService.calculateTokens(config);
             balanceService.recordOperation(userId, "edit", -requiredTokens, balanceService.getTokensBalance(userId),
-                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));*/
 
             startAsyncImageEdit(chatId, userId, singleImage, prompt, config);
         } else if (prompt != null && !prompt.isEmpty()) {
@@ -641,9 +641,9 @@ public class MessageHandlerImpl implements MessageHandler {
                 return;
             }
             balanceService.useImageGeneration(userId, config);
-            int requiredTokens = costCalculatorService.calculateTokens(config);
+            /*int requiredTokens = costCalculatorService.calculateTokens(config);
             balanceService.recordOperation(userId, "generate", -requiredTokens, balanceService.getTokensBalance(userId),
-                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));
+                    Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));*/
 
             /* Отправляем сообщение перед генерацией*/
             telegramService.sendMessage(chatId,
