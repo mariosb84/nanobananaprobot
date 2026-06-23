@@ -640,7 +640,7 @@ public class MessageHandlerImpl implements MessageHandler {
                 telegramService.sendMessage(chatId, "❌ Недостаточно токенов для генерации");
                 return;
             }
-            balanceService.useImageGeneration(userId, config);
+            /*balanceService.useImageGeneration(userId, config);*/
             /*int requiredTokens = costCalculatorService.calculateTokens(config);
             balanceService.recordOperation(userId, "generate", -requiredTokens, balanceService.getTokensBalance(userId),
                     Map.of("resolution", config.getResolution(), "aspectRatio", config.getAspectRatio(), "prompt", prompt));*/

@@ -149,6 +149,12 @@ public class GenerationBalanceService {
     public boolean useImageGeneration(Long userId, ImageConfig config) {
         /* Блокируем строку баланса*/
         UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+
+        if (balance == null) {
+            log.warn("❌ Операция уже выполняется для userId: {}", userId);
+            return false;
+        }
+
         if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
             log.warn("❌ Генерация уже выполняется для userId: {}", userId);
             return false;
@@ -187,6 +193,12 @@ public class GenerationBalanceService {
     @Transactional
     public boolean useImageEdit(Long userId, ImageConfig config) {
         UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+
+        if (balance == null) {
+            log.warn("❌ Операция уже выполняется для userId: {}", userId);
+            return false;
+        }
+
         if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
             log.warn("❌ Редактирование уже выполняется для userId: {}", userId);
             return false;
@@ -220,6 +232,12 @@ public class GenerationBalanceService {
     @Transactional
     public boolean useImageMerge(Long userId, ImageConfig config, int imageCount) {
         UserGenerationBalance balance = getOrCreateBalanceForUpdate(userId);
+
+        if (balance == null) {
+            log.warn("❌ Операция уже выполняется для userId: {}", userId);
+            return false;
+        }
+
         if (Boolean.TRUE.equals(balance.getGenerationInProgress())) {
             log.warn("❌ Слияние уже выполняется для userId: {}", userId);
             return false;
