@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS token_purchases (
 CREATE TABLE IF NOT EXISTS operation_history (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES person(person_id) ON DELETE CASCADE,
-    operation_type VARCHAR(20) CHECK (operation_type IN ('generate', 'edit', 'merge', 'purchase', 'refund')),
+    operation_type VARCHAR(20) CHECK (operation_type IN ('generate', 'edit', 'merge', 'purchase', 'refund', 'bonus')),
     tokens_change INTEGER, -- + при покупке, - при списании
     tokens_balance_after INTEGER,
     details JSONB, -- {resolution: '1K', aspect_ratio: '16:9', prompt: '...', image_count: 2}
