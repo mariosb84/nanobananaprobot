@@ -47,6 +47,15 @@ public class MyTaxService {
     }
 
     private synchronized void fetchCookies() {
+
+        /* Генерируем любые куки — налоговая проверяет только наличие заголовка Cookie*/
+
+        cookies = "_ym_uid=0000000000000000; _ym_d=0; _ym_isad=2";
+        cookiesFetchedAt = LocalDateTime.now();
+        log.info("Куки установлены: {}", cookies);
+    }
+
+    /*private synchronized void fetchCookies() {
         try {
             HttpClient client = HttpClient.newBuilder()
                     .proxy(java.net.ProxySelector.of(
@@ -80,7 +89,7 @@ public class MyTaxService {
         } catch (Exception e) {
             log.error("Ошибка получения кук: {}", e.getMessage());
         }
-    }
+    }*/
 
     private String getCookies() {
         if (cookies == null || cookiesFetchedAt == null ||
