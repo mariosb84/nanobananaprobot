@@ -9,11 +9,11 @@ import ru.loolzaaa.nalog.mytax.client.MyTaxClient;
 import ru.loolzaaa.nalog.mytax.client.MyTaxClientConfig;
 import ru.loolzaaa.nalog.mytax.client.pojo.Receipt;
 
-import java.net.URI;
+/*import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.time.Duration;*/
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -40,7 +40,7 @@ public class MyTaxService {
         fetchCookies();
     }
 
-    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // каждые 24 часа
+    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) /* каждые 24 часа*/
     public void scheduledCookiesRefresh() {
         log.info("Обновление кук по расписанию");
         fetchCookies();
