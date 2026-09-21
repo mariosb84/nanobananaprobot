@@ -144,9 +144,18 @@ public class GenerationService {
 
             /* 6. Возвращаем баланс при ошибке*/
 
-            try {
+            /*try {
                 balanceService.addImageGenerations(userId, 1);
                 log.info("Баланс возвращен для userId: {} после ошибки CometAPI", userId);
+            } catch (Exception ex) {
+                log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
+            }*/
+
+            try {
+                ImageConfig config = stateManager.getOrCreateConfig(chatId);
+                int tokens = costCalculatorService.calculateTokens(config);
+                balanceService.refundTokens(userId, tokens);
+                log.info("Баланс возвращен для userId: {} после ошибки CometAPI ({} токенов)", userId, tokens);
             } catch (Exception ex) {
                 log.error("Не удалось вернуть баланс для userId: {}", userId, ex);
             }
